@@ -1,0 +1,60 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Smart Wizard 2 - Basic Example  - a javascript jQuery wizard control plugin</title>
+
+<link href="styles/smart_wizard.css" rel="stylesheet" type="text/css">
+<link href="styles/webcellhts_style.css" rel="stylesheet" type="text/css">
+<link href="styles/jquery.contextMenu.css" rel="stylesheet" type="text/css">
+<link href="styles/myContextMenu.css" rel="stylesheet" type="text/css">
+
+<script type="text/javascript" src="js/jquery-1.9.0.min.js"></script>
+<script type="text/javascript" src="js/b110HelperFunctions.js"></script>
+<script type="text/javascript" src="js/MenueTools.js"></script>
+<script type="text/javascript" src="js/PlateEditor.js"></script>
+<script type="text/javascript" src="js/PlateConfiguration.js"></script>
+<script type="text/javascript" src="js/Config.js"></script>
+<script type="text/javascript" src="js/Cell.js"></script>
+<script type="text/javascript" src="js/PositionCalculator.js"></script>
+<script type="text/javascript" src="js/jquery.ui.position.js"></script>
+<script type="text/javascript" src="js/jquery.contextMenu.js"></script>
+<script type="text/javascript" src="js/myContextMenu.js"></script>
+
+
+
+<script  type="text/javascript">
+$(document).ready(function(){
+	var plateEditor = new de.dkfz.signaling.webcellhts.PlateEditor("plateEditor");
+	loadPlateEditorCtxMenu(plateEditor);
+    	
+});
+</script>
+
+</head>
+<body> 
+
+<div id="step-1">	
+            	<h2 class="StepTitle">The Plate Editor</h2>
+            	
+            	<select id="plateFormatSelect">
+					<option value="96" default="true">96</option>  ⋮
+      				<option value="192">384</option>
+      				<option value="384">1536</option>
+    			</select>
+    			<select id="cellType">
+					<option value="positive" default="true">positive</option>  ⋮
+      				<option value="negative">negative</option>
+      				<option value="control">control</option>
+      				<option value="empty">empty</option>
+    			</select>
+    			Current Well <div id="currWell"></div>
+    			
+  										    		
+				<div id="debugOut"></div>
+            	<canvas id="plateEditor" width="900" height="900">
+            		Hey you, yes YOU, upgrade your browser!!
+            	</canvas>    			
+</div>
+            	
+</body>
+</html>
