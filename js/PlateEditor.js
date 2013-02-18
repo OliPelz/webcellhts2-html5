@@ -115,6 +115,7 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		var startPoint;
 		var endPoint;
 		var ctx = this.ctx;
+		var canvas = this.canvas;
 		var jsHelper = this.jsHelper;
 		
 		var cellRangeCoordsX = this.plateConfig.getPlateRangeCoordinates("x");
@@ -123,32 +124,33 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		var startPoint = {};
 		var cfg = this.cfg;
 		var currDrawTool = this.currDrawTool;
+		var rect = this.canvas.getBoundingClientRect();
+		var my_start_coords;
 		//this is for debugging
+		var i = 0;
 		$('#plateEditor').mousemove(function(event) {
-	 			var my_start_x = event.clientX - event.target.offsetLeft;  //gets the point
-  				var my_start_y = event.clientY - event.target.offsetTop;   //relative to the canvas
-  				var cellIndex = posCalculator.getGridIndexForCoordinate({x:my_start_x,y:my_start_y});
-  				console.log("x_cell: "+cellIndex.x_cell+" y_cell: "+cellIndex.y_cell);
+	 			var my_start_coordinates = jsHelper.getCursorPosition(canvas, event);
+  				//var cellIndex = posCalculator.getGridIndexForCoordinate({x:my_start_x,y:my_start_y});
+  				//console.log("x_cell: "+cellIndex.x_cell+" y_cell: "+cellIndex.y_cell);
+  				if(i++ % 100)  {
+  				    console.log("x_cell: "+my_start_coordinates.x+" y_cell: "+my_start_coordinates.y);
+  				}
   		});
 		$('#plateEditor').mousedown(function(event) {
-	 			var my_start_x = event.clientX - event.target.offsetLeft;  //gets the point
-  				var my_start_y = event.clientY - event.target.offsetTop;   //relative to the canvas
-  				startPoint = {x:my_start_x,y:my_start_y};
+	 			my_start_coords = jsHelper.getCursorPosition(canvas, event);
   				//this is doing the trick of drawing a line : add evetlistener of mouse
   				//movevent within our event listener so it will only be called while we already have clicked 'down'
   				mouse_downed = true;
+  				
   		});
   		$('#plateEditor').mouseup(function(event) {
   					if(!mouse_downed) {
   						return;
   					}
   					mouse_downed = false;
-  					var my_end_x = event.clientX - event.target.offsetLeft;  //gets the point
-  					var my_end_y = event.clientY - event.target.offsetTop;   //relative to the canvas
-  					var current_endpoint = {x:my_end_x,y:my_end_y};
-  					console.log("stop click: "+current_endpoint.x+" / "+current_endpoint.y);
-  					jsHelper.drawLine(startPoint, current_endpoint, 1, "green", ctx);
-  					var coordinates = jsHelper.getCoordinatesOfInterestForLine(startPoint, current_endpoint, cellRangeCoordsX);
+  					var current_endpoint_coords = jsHelper.getCursorPosition(canvas, event);
+  					jsHelper.drawLine(my_start_coords, current_endpoint_coords, 1, "green", ctx);
+  					var coordinates = jsHelper.getCoordinatesOfInterestForLine(my_start_coords, current_endpoint_coords, cellRangeCoordsX);
   					//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
   					//the rules for single click mode:
   					// 1. click in the X: delete the current plate
@@ -156,14 +158,15 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   					// 3. click on a cell: mark that cell
   					if(coordinates.length == 1 && currDrawTool == cfg.DRAW_TOOL.POINT) {
   						var coord = coordinates[0];
-  						var cellIndex = posCalculator.getGridIndexForCoordinate({x:coord.x,y:coord.y});  						
+  						var cellIndex = posCalculator.getGridIndexForCoordinate({x:coord.x,y:coord.y});
+  						console.log("cell index : "+cellIndex.x_cell +" / "+cellIndex.y_cell );  						
   						//first check if we hit the X...delete the whole layout
   						if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
   							plateConfig.resetPlateLayoutAndRedraw();
   						}
   						//if we have a 'normal' cell
   						if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
-  							plateConfig.setCellToTypeAndDraw(cellIndex.x_cell - 1 , cellIndex.y_cell - 1, chosenWellType);  //this is for testing
+  							plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, chosenWellType);  //this is for testing
   						}
   					}
   					

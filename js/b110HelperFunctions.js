@@ -104,8 +104,15 @@ de.dkfz.signaling.b110.JsHelper.prototype.getCoordinatesOfInterestForLine
 	}
 	return returnList;
 }
-de.dkfz.signaling.b110.JsHelper.prototype.getCellsForCoordinates = function() {
+//see http://stackoverflow.com/questions/55677/how-do-i-get-the-coordinates-of-a-mouse-click-on-a-canvas-element/5932203#5932203
+de.dkfz.signaling.b110.JsHelper.prototype.getCursorPosition = function(canvas, event) {
+var x, y;
 
+canoffset = $(canvas).offset();
+x = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - Math.floor(canoffset.left);
+y = event.clientY + document.body.scrollTop + document.documentElement.scrollTop - Math.floor(canoffset.top) + 1;
+
+return {x:x, y:y};
 }
 de.dkfz.signaling.b110.JsHelper.prototype.drawLine = function(startPoint
    												, stopPoint

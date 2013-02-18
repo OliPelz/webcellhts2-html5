@@ -22,7 +22,7 @@ de.dkfz.signaling.webcellhts.Config = {
 	CELL_FONT_COLOR : "black",
 // position and size of the drawing wellplate
 	WELLPLATE_POS : {x:50, y:50},   //the upper left start of our plate IN the canvas
-	WELLPLATE_WIDTH : 800,
+	WELLPLATE_WIDTH : 300,
 	WELLPLATE_HEIGHT : 600,
 	WELLPLATE_LINESTRENGTH : 1,  //the surrounding box
 	WELLPLATE_LINECOLOR : "black",
