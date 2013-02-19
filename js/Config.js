@@ -20,10 +20,11 @@ de.dkfz.signaling.webcellhts.Config = {
 	CELL_PADDING: {x:3, y:3},  //this is not a real padding, its the space between two cells
 	CELL_FONT : "san-serif",
 	CELL_FONT_COLOR : "black",
+	CELL_DIMENSION : {width : 35, height : 35},
 // position and size of the drawing wellplate
 	WELLPLATE_POS : {x:50, y:50},   //the upper left start of our plate IN the canvas
-	WELLPLATE_WIDTH : 300,
-	WELLPLATE_HEIGHT : 600,
+	//WELLPLATE_WIDTH : 250,
+	//WELLPLATE_HEIGHT : 500,
 	WELLPLATE_LINESTRENGTH : 1,  //the surrounding box
 	WELLPLATE_LINECOLOR : "black",
 //other constants

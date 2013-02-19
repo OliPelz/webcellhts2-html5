@@ -187,14 +187,16 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype._drawBorders = functio
 	var lineStrength = this.cfg.WELLPLATE_LINESTRENGTH;
 	this.ctx.strokeStyle = lineColor;
 	this.ctx.lineWidth = lineStrength;
+	var plateDimension = this.posCalculator.getPlateDimension();
 	//draw the border around the plate (this must not be the canvas border)
 	this.ctx.strokeRect(this.cfg.WELLPLATE_POS.x, this.cfg.WELLPLATE_POS.y, 
-					this.cfg.WELLPLATE_WIDTH, this.cfg.WELLPLATE_HEIGHT);
+					plateDimension.width, plateDimension.height);
 }
 //this clears the complete drawn plate
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.clearPlateDraw = function() {
+	var plateDimension = this.posCalculator.getPlateDimension();
 	this.ctx.clearRect(this.cfg.WELLPLATE_POS.x, this.cfg.WELLPLATE_POS.y, 
-    						this.cfg.WELLPLATE_WIDTH, this.cfg.WELLPLATE_HEIGHT);
+    						plateDimension.width, plateDimension.height);
 }
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.getCellDimension = function() {
 	return this.cellDimension;

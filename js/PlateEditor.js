@@ -126,24 +126,52 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		var currDrawTool = this.currDrawTool;
 		var rect = this.canvas.getBoundingClientRect();
 		var my_start_coords;
-		//this is for debugging
+		
 		var i = 0;
-		$('#plateEditor').mousemove(function(event) {
+		
+		//this method is for debugging...disable it later
+		/*$('#plateEditor').mousemove(function(event) {
 	 			var my_start_coordinates = jsHelper.getCursorPosition(canvas, event);
   				//var cellIndex = posCalculator.getGridIndexForCoordinate({x:my_start_x,y:my_start_y});
   				//console.log("x_cell: "+cellIndex.x_cell+" y_cell: "+cellIndex.y_cell);
   				if(i++ % 100)  {
   				    console.log("x_cell: "+my_start_coordinates.x+" y_cell: "+my_start_coordinates.y);
   				}
-  		});
-		$('#plateEditor').mousedown(function(event) {
-	 			my_start_coords = jsHelper.getCursorPosition(canvas, event);
-  				//this is doing the trick of drawing a line : add evetlistener of mouse
-  				//movevent within our event listener so it will only be called while we already have clicked 'down'
-  				mouse_downed = true;
+  		});*/
+		
+		//register the event handler for single cell click tool
+		if( currDrawTool == cfg.DRAW_TOOL.POINT ) {
+			$('#plateEditor').click(function(event) {
+	 			var coord = jsHelper.getCursorPosition(canvas, event);
   				
-  		});
-  		$('#plateEditor').mouseup(function(event) {
+  				//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
+  				//the rules for single click mode:
+  				// 1. click in the X: delete the current plate
+  				// 2. click on a header: mark the complete row/column
+  				// 3. click on a cell: mark that cell
+  					
+  				var cellIndex = posCalculator.getGridIndexForCoordinate({x:coord.x,y:coord.y});
+  				console.log("cell index : "+cellIndex.x_cell +" / "+cellIndex.y_cell );  						
+  				//first check if we hit the X...delete the whole layout
+  				if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
+  						plateConfig.resetPlateLayoutAndRedraw();
+  				}
+  				//if we have a 'normal' cell
+  				if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
+  						plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, chosenWellType);  //this is for testing
+  				}
+  					
+  				
+  			});
+		}
+		else if( currDrawTool == cfg.DRAW_TOOL.LINE ) {
+			$('#plateEditor').mousedown(function(event) {
+		 			my_start_coords = jsHelper.getCursorPosition(canvas, event);
+  					//this is doing the trick of drawing a line : add evetlistener of mouse
+  					//movevent within our event listener so it will only be called while we already have clicked 'down'
+  					mouse_downed = true;		
+  			});
+  			$('#plateEditor').mouseup(function(event) {
   					if(!mouse_downed) {
   						return;
   					}
@@ -156,18 +184,8 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   					// 1. click in the X: delete the current plate
   					// 2. click on a header: mark the complete row/column
   					// 3. click on a cell: mark that cell
-  					if(coordinates.length == 1 && currDrawTool == cfg.DRAW_TOOL.POINT) {
-  						var coord = coordinates[0];
-  						var cellIndex = posCalculator.getGridIndexForCoordinate({x:coord.x,y:coord.y});
-  						console.log("cell index : "+cellIndex.x_cell +" / "+cellIndex.y_cell );  						
-  						//first check if we hit the X...delete the whole layout
-  						if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
-  							plateConfig.resetPlateLayoutAndRedraw();
-  						}
-  						//if we have a 'normal' cell
-  						if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
-  							plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, chosenWellType);  //this is for testing
-  						}
+  					if(coordinates.length > 1 ) {
+  						//do some fancy things
   					}
   					
   				//	var cellsOfInterest = jsHelper.getCellsForCoordinates(coordinates);
@@ -176,7 +194,8 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   				//iterate through yPointCoordArr
   				//	 cellIndexId = getCellIDForCoordinate(x, yPointCoord)
   				//     PlateConfiguration.changeCell(cellIndexId, chosenColor);
-  	    });
+  	    	});
+  	    }
   	    
 	
 	
