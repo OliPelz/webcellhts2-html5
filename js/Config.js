@@ -14,10 +14,10 @@ de.dkfz.signaling.webcellhts.Config = {
 
 //properties for cells
   	CELL_TYPE : {positive:0, negative:1, control:2, empty:3, other:4 },
-	CELL_FILLCOLOR : {0:"green", 1:"red", 2:"yellow", 3:"white", 4:"grey"}, //define the colors for the WELLTYPE
+	CELL_FILLCOLOR : {0:"green", 1:"red", 2:"yellow", 3:"pink", 4:"grey"}, //define the colors for the WELLTYPE
 	CELL_LINECOLOR : "black",
-	CELL_LINESTRENGTH : 1,  //the line of the box
-	CELL_PADDING: {x:3, y:3},  //this is not a real padding, its the space between two cells
+	CELL_LINESTRENGTH : 2,  //the linestrength should be more than 1 otherwise the borders of fillrect and strokerect will be messed up
+	CELL_PADDING: {x:3, y:3},  //this is not a real padding, its the space between two cells...should be more than 1 because otherwise the rectangles look weired
 	CELL_FONT : "san-serif",
 	CELL_FONT_COLOR : "black",
 	CELL_DIMENSION : {width : 35, height : 35},
@@ -29,8 +29,8 @@ de.dkfz.signaling.webcellhts.Config = {
 	WELLPLATE_LINECOLOR : "black",
 //other constants
 	PLATEAREA : { X_HEAD:0, ROW_HEAD:1, COLUMN_HEAD:2, CELL:3, NONE:4 },  //defines area the mouse is currently at
-	DRAW_TOOL : { POINT:0, LINE:1, RECTANGLE:2 }  //select the current drawing tool: draw points, draw rectangles etc
-	
+	DRAW_TOOL : { POINT:0, LINE:1, RECTANGLE:2 },  //select the current drawing tool: draw points, draw rectangles etc
+	DEBUG_COORDS: false  //debugging flag for coordinates grid and mouse movement (open console to see a log)
 }
 getColorForWellType = function(wellType) {
 	return de.dkfz.signaling.webcellhts.Config.CELL_FILLCOLOR[wellType];

@@ -63,13 +63,6 @@ de.dkfz.signaling.webcellhts.Cell.prototype.drawAll = function(){
 	this._drawShape();
 	this._drawCenteredText();
 }
-//only update the cell color (cell type)
-de.dkfz.signaling.webcellhts.Cell.prototype.updateDrawCellType = function(){
-	this._drawShape();
-}
-
-//update wellType 
-
 de.dkfz.signaling.webcellhts.Cell.prototype.getBorders = function() {	
 	return {x_start:this.drawPosition.x , x_stop:this.drawPosition.x+this.dimensions.width,
 			 y_start: this.drawPosition.y , y_stop:this.drawPosition.y+this.dimensions.height
@@ -93,21 +86,27 @@ de.dkfz.signaling.webcellhts.Cell.prototype._drawShape = function() {
 //draw a cell with the upper left position
 de.dkfz.signaling.webcellhts.Cell.prototype._drawShapeWithPosition = function(drawPosition) {	
 	var color = getColorForWellType(this.currentType);
-	var lineColor =  this.cfg.CELL_LINECOLOR;	
 	var lineStrength = this.cfg.CELL_LINESTRENGTH;
-	this.ctx.lineWidth = lineStrength;
-	this.ctx.strokeStyle = lineColor;
+	this.ctx.save();
 	this.ctx.fillStyle = color;
     this.ctx.fillRect(drawPosition.x, drawPosition.y, 
-					this.dimensions.width, this.dimensions.height);
-	this.ctx.strokeRect(drawPosition.x, drawPosition.y, 
-					this.dimensions.width, this.dimensions.height);		
+					this.dimensions.width  , this.dimensions.height );
+					
+	var lineColor =  this.cfg.CELL_LINECOLOR;	
+	
+	this.ctx.lineWidth = lineStrength;   
+	this.ctx.strokeStyle = lineColor;
+	this.ctx.restore();
+	//this.ctx.strokeRect(drawPosition.x, drawPosition.y, 
+	//				this.dimensions.width, this.dimensions.height);	
+		
 }
 de.dkfz.signaling.webcellhts.Cell.prototype._drawCenteredText	= function() {
 		var text = this._numberToRowCode();
 		this._drawCenteredTextWithPosition(this.drawPosition, text);
 }
 de.dkfz.signaling.webcellhts.Cell.prototype._drawCenteredTextWithPosition	= function(drawPosition, text) {
+		this.ctx.save();
 		this.ctx.textAlign = "center";	
 		var fontPx = this.helper.getSmallerNum(this.dimensions.width, this.dimensions.height) * 0.5;	//the font size about 1/2 of the cell			  
 		this.ctx.font = fontPx+"px "+this.cfg.CELL_FONT;
@@ -117,6 +116,7 @@ de.dkfz.signaling.webcellhts.Cell.prototype._drawCenteredTextWithPosition	= func
 		//center the y axis, we take the font size into account
 		var yDrawPos = drawPosition.y + this.dimensions.height * 0.7;
 		this.ctx.fillText(text, xDrawPos, yDrawPos);		
+		this.ctx.restore();
 }
 //this method returns ascii character value for integer based on 1=A etc.
 de.dkfz.signaling.webcellhts.Cell.prototype._numberToRowCode = function() { 

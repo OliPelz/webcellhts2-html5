@@ -65,6 +65,11 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId) {
         }
         this.canvas = document.getElementById(containerId);
         this.ctx = this.canvas.getContext('2d');
+        //draw a border
+        	this.jsHelper.strokeRectangle("black", 1
+									,  {width: this.canvas.width, height: this.canvas.height }
+									, {x: 0 , y: 0}
+									, this.ctx);
       	this.menueTools = new de.dkfz.signaling.webcellhts.MenueTools(this.ctx);
 		this.plateConfig = new de.dkfz.signaling.webcellhts.PlateConfiguration(
 								$("#"+this.plateFormatId).val(), this.ctx
@@ -74,8 +79,13 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId) {
         this._updateParameters();
     	//now draw everything
         this.plateConfig.drawAll();
-        
-		//var cell = new de.dkfz.signaling.webcellhts.Cell(1, 0, 0, 30, 50, this.cfg.CELL_TYPE.positive, this.ctx);
+	
+		if( this.cfg.DEBUG_COORDS == true ) {
+			draw_grid(this.canvas);
+			draw_dots_with_labels(0, 0, this.ctx);
+			draw_dots_with_labels(50, 50, this.ctx);
+		}
+		       
 }
 
 
@@ -130,28 +140,28 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		var i = 0;
 		
 		//this method is for debugging...disable it later
-		/*$('#plateEditor').mousemove(function(event) {
-	 			var my_start_coordinates = jsHelper.getCursorPosition(canvas, event);
-  				//var cellIndex = posCalculator.getGridIndexForCoordinate({x:my_start_x,y:my_start_y});
-  				//console.log("x_cell: "+cellIndex.x_cell+" y_cell: "+cellIndex.y_cell);
-  				if(i++ % 100)  {
-  				    console.log("x_cell: "+my_start_coordinates.x+" y_cell: "+my_start_coordinates.y);
-  				}
-  		});*/
-		
+		if(this.cfg.DEBUG_COORDS == true) {
+			$('#plateEditor').mousemove(function(event) {
+	 				var my_start_coordinates = jsHelper.getCursorPosition(canvas, event);
+	 				var headingStart = posCalculator.getActualUpperLeftHeadingStart();
+  					
+  					//console.log("x_cell: "+cellIndex.x_cell+" y_cell: "+cellIndex.y_cell);
+  					if(i++ % 100)  {
+  						var cellIndex = posCalculator.getGridIndexForCoordinate({x:my_start_coordinates.x,y:my_start_coordinates.y});				    	
+  				    	i = 0;
+  					}
+  			});
+		}
 		//register the event handler for single cell click tool
 		if( currDrawTool == cfg.DRAW_TOOL.POINT ) {
+			//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
+  					//the rules for single click mode:
+  					// 1. click in the X: delete the current plate
+  					// 2. click on a header: mark/unmark the complete row/column
+  					// 3. click on a cell: mark/unmark that cell
 			$('#plateEditor').click(function(event) {
-	 			var coord = jsHelper.getCursorPosition(canvas, event);
-  				
-  				//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
-  				//the rules for single click mode:
-  				// 1. click in the X: delete the current plate
-  				// 2. click on a header: mark the complete row/column
-  				// 3. click on a cell: mark that cell
-  					
-  				var cellIndex = posCalculator.getGridIndexForCoordinate({x:coord.x,y:coord.y});
-  				console.log("cell index : "+cellIndex.x_cell +" / "+cellIndex.y_cell );  						
+	 			var coord = jsHelper.getCursorPosition(canvas, event);	
+  				var cellIndex = posCalculator.getGridIndexForCoordinate({x:coord.x,y:coord.y});					
   				//first check if we hit the X...delete the whole layout
   				if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
   						plateConfig.resetPlateLayoutAndRedraw();
@@ -179,11 +189,7 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   					var current_endpoint_coords = jsHelper.getCursorPosition(canvas, event);
   					jsHelper.drawLine(my_start_coords, current_endpoint_coords, 1, "green", ctx);
   					var coordinates = jsHelper.getCoordinatesOfInterestForLine(my_start_coords, current_endpoint_coords, cellRangeCoordsX);
-  					//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
-  					//the rules for single click mode:
-  					// 1. click in the X: delete the current plate
-  					// 2. click on a header: mark the complete row/column
-  					// 3. click on a cell: mark that cell
+  					
   					if(coordinates.length > 1 ) {
   						//do some fancy things
   					}

@@ -51,6 +51,8 @@ de.dkfz.signaling.webcellhts.PlateConfiguration = function(plateFormat, ctx) {
 	this.columns = rowColObj.columns;
 	//this array holds the internal well states e.g. empty,positive...for every cell in the 2d array
 	this.wellStateArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows, this.columns);
+	//this array holds the former well states...this is important for undo functionality
+	this.undoWellStateArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows, this.columns);
 	this.ctx = ctx;  
 	this.cfg = de.dkfz.signaling.webcellhts.Config;
 	//this array holds the html5 canvas rectangle objects of the wells of the plate
@@ -60,6 +62,7 @@ de.dkfz.signaling.webcellhts.PlateConfiguration = function(plateFormat, ctx) {
 	this._emptyWellStates();
 
 	this._initCanvasCellObj();
+	this.jsHelper = new de.dkfz.signaling.b110.JsHelper();
 }
 //draw all...this draws a complete empty and freshly initalized plate with the border, the headings and the cells
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAll = function() {
@@ -108,10 +111,18 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellToTypeAndDraw =
 	if( j < 0 ) {
 		return;
 	}
-	var currType = this.wellStateArr[i][j];
+	//if we have clicked with the same type again on the well, undo the state
+	//so a simple undo feature is clicking two times on a cell
+	if(type == this.wellStateArr[i][j]) {
+		 type = this.undoWellStateArr[i][j];
+	}
+	var oldType = this.wellStateArr[i][j];
 	this.wellStateArr[i][j] = type;
-	this.html5Wells[i][j].currentType = type;
+	//save the old state for next round or later undo commands
+	this.undoWellStateArr[i][j] = oldType;
+	this.html5Wells[i][j].currentType = this.wellStateArr[i][j];
 	this.html5Wells[i][j].drawAll();
+	 
 }
 
 //this resets the complete plate layout and redraws the cells
@@ -125,6 +136,7 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setAllWellStates = fun
 	for(var i = 0; i < this.rows; i++) {
 		for(var j = 0; j < this.columns; j++) {
 			this.wellStateArr[i][j] = type;
+			this.undoWellStateArr[i][j] = type;
 		}
 	}
 }
@@ -183,14 +195,18 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype._drawAllCells = functi
 
 
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype._drawBorders = function() {
-	var lineColor = this.cfg.WELLPLATE_LINECOLOR;
+	/*var lineColor = this.cfg.WELLPLATE_LINECOLOR;
 	var lineStrength = this.cfg.WELLPLATE_LINESTRENGTH;
 	this.ctx.strokeStyle = lineColor;
 	this.ctx.lineWidth = lineStrength;
 	var plateDimension = this.posCalculator.getPlateDimension();
 	//draw the border around the plate (this must not be the canvas border)
 	this.ctx.strokeRect(this.cfg.WELLPLATE_POS.x, this.cfg.WELLPLATE_POS.y, 
-					plateDimension.width, plateDimension.height);
+					plateDimension.width, plateDimension.height);*/
+	this.jsHelper.strokeRectangle(this.cfg.WELLPLATE_LINECOLOR, this.cfg.WELLPLATE_LINESTRENGTH
+								,  this.posCalculator.getPlateDimension()
+								, this.cfg.WELLPLATE_POS
+								, this.ctx);
 }
 //this clears the complete drawn plate
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.clearPlateDraw = function() {

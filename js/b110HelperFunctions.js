@@ -110,7 +110,7 @@ var x, y;
 
 canoffset = $(canvas).offset();
 x = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft - Math.floor(canoffset.left);
-y = event.clientY + document.body.scrollTop + document.documentElement.scrollTop - Math.floor(canoffset.top) + 1;
+y = event.clientY + document.body.scrollTop + document.documentElement.scrollTop - Math.floor(canoffset.top); // TODO: why?
 
 return {x:x, y:y};
 }
@@ -120,6 +120,7 @@ de.dkfz.signaling.b110.JsHelper.prototype.drawLine = function(startPoint
    												, lineColor
    												, ctx
    												) {
+   			ctx.save()
    			ctx.fillStyle = lineColor;
     		ctx.lineWidth = lineThickness;										
     		ctx.beginPath();
@@ -128,4 +129,40 @@ de.dkfz.signaling.b110.JsHelper.prototype.drawLine = function(startPoint
     		//then actually draw this thing
     		ctx.stroke();
     		ctx.closePath();
-   	}
+    		ctx.restore();
+}
+//this neglects anti aliasing for 1px lines
+de.dkfz.signaling.b110.JsHelper.prototype.drawThinHorizontalLine = function(c, x1, x2, y) {
+		c.lineWidth = 1;
+		var adaptedY = Math.floor(y)+0.5;
+		c.beginPath();
+		c.moveTo(x1, adaptedY);
+		c.lineTo(x2, adaptedY);
+		c.stroke();
+}
+//this neglects anti aliasing for 1px lines
+de.dkfz.signaling.b110.JsHelper.prototype.drawThinVerticalLine = function(c, x, y1, y2) {
+		c.lineWidth = 1;
+		var adaptedX = Math.floor(x)+0.5;
+		c.beginPath();
+		c.moveTo(adaptedX, y1);
+		c.lineTo(adaptedX, y2);
+		c.stroke();
+}
+//this strokes a rectangle but keeps in mind anti aliasing for 1px lines
+de.dkfz.signaling.b110.JsHelper.prototype.strokeRectangle = function(lineColor, lineStrength,  plateDimension, position, ctx) {
+	var position_x = position.x;
+	var position_y = position.y;
+	if(lineStrength <= 1) {
+		lineStrength = 1;
+		position_x += 0.5;
+		position_y += 0.5;
+	}
+	ctx.save();
+	ctx.strokeStyle = lineColor;
+	ctx.lineWidth = lineStrength;
+	//draw the border around the plate (this must not be the canvas border)
+	ctx.strokeRect(position_x, position_y, 
+					plateDimension.width, plateDimension.height);
+	ctx.restore();
+}

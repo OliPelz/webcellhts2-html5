@@ -46,12 +46,7 @@ de.dkfz.signaling.webcellhts.PositionCalculator = function(rows, columns) {
 	this.rows = rows;
 	this.columns = columns;
 	this.dimension = this.getCellDimension();
-	//we only want to calculate the following thing one time because it is calculation 
-	//overhead to do this for every funtion call later :
-	//the percentage of a cells length (plus the linestrenght) and width in relationship to the length+width plus the cells padding
-	var tmpX = (this.dimension.width + this.cfg.CELL_LINESTRENGTH) / (this.dimension.width +  this.cfg.CELL_PADDING.x + this.cfg.CELL_LINESTRENGTH);
-	var tmpY = (this.dimension.height + this.cfg.CELL_LINESTRENGTH)/ (this.dimension.height +  this.cfg.CELL_PADDING.y + this.cfg.CELL_LINESTRENGTH);
-	this.cellPercPadding = { width: tmpX, height: tmpY };
+	
 }
 //this method calculates the canvas dimension by cell height and width
 de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getPlateDimension = function() {
@@ -69,27 +64,6 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getPlateDimension = fu
 de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getCellDimension = function() {
 	var cfg = this.cfg;
 	return cfg.CELL_DIMENSION;
-	/*var rows = this.rows;
-	var columns = this.columns;
-	rows++;     	//plus one because one extra column for the header
-	columns++;		 //plus one because one extra row for the header
-	var totalHeight = cfg.WELLPLATE_HEIGHT;
-	var totalWidth = cfg.WELLPLATE_WIDTH;
-	var plateLineStrength = cfg.WELLPLATE_LINESTRENGTH;
-	var cellLineStrength = cfg.CELL_LINESTRENGTH;
-	var cellPadding = cfg.CELL_PADDING;
-	//get the actual possible drawing length (do not draw within cell borders, lines etc.)
-//	var drawWidth = totalWidth - plateLineStrength * 2 - (cellLineStrength * 2) * columns;
-//	var drawHeight = totalHeight - plateLineStrength * 2 - (cellLineStrength * 2) * rows;
-	//we forgot to remove the padding between cells
-	var drawWidth = totalWidth;
-	var drawHeight = totalHeight;
-	drawWidth -= cellPadding.x * columns + cellPadding.x ; // every cell has one paddings, the most right one has "two"
-	drawHeight -= cellPadding.y * rows + cellPadding.y;
-
-	var x = drawWidth / columns; 
-	var y = drawHeight / rows; 
-	return {width:Math.floor(x), height:Math.floor(y)};*/
 }
 //get the actual 'upper left coordinate' of the most upper left heading 'cell' {x,y}
 de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getActualUpperLeftHeadingStart = function() {
@@ -117,42 +91,46 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getGridIndexForCoordin
 	var cfg = this.cfg;
 	var enum_type;
 	var headingStart = this.getActualUpperLeftHeadingStart();
-	var x_norm = curr_pos.x - headingStart.x;  //normalize the current position to the coordinates of the heading
+	var x_norm = curr_pos.x - headingStart.x;  //normalize the current position to the coordinates of the heading to zero
 	var y_norm = curr_pos.y - headingStart.y;
-	console.log("head: "+headingStart.x+" "+headingStart.y);
-	console.log("dimens: "+this.dimension.width+" "+this.dimension.height);
-	console.log("----");
-	console.log("real: "+curr_pos.x+" "+curr_pos.y);
-	console.log("norm: "+x_norm+" "+y_norm);
-	console.log("----");
-	console.log("----");
 
 	var x_number = -1;
-	if(x_norm > 0 ) { 
+	var x_rest = -1;
+	if(x_norm >= 0 ) {  //we start our coordinate system system with zero based numbers
 	//calculate the index coordinates in a zero based 'array'
-		x_number = x_norm / (cfg.CELL_PADDING.x + this.dimension.width );
+		x_number = x_norm / (cfg.CELL_PADDING.x + this.dimension.width ); //get the index of the cell+padding
+		x_rest = x_norm % (cfg.CELL_PADDING.x + this.dimension.width ); //get the rest
 	}
 	var y_number = -1;
-	if(y_norm > 0 ) {
-		y_number = y_norm / (cfg.CELL_PADDING.y + this.dimension.height );
+	var y_rest = -1;
+	if(y_norm >= 0 ) {
+		y_number = y_norm / (cfg.CELL_PADDING.y + this.dimension.height ); //get the index
+		y_rest = y_norm % (cfg.CELL_PADDING.y + this.dimension.height ); //get the rest
 	};
 	
-	if( (x_number % 1) > this.cellPercPadding.width ) { //modulo one gives only the decimal places of a number so we can compare them
+	if( x_rest > this.dimension.width   ) {  //if our current mouse position is smaller or equals the cell dimension we are in a cell and not in the padding
 		x_number = -1;
 	}
-	if( (y_number % 1) > this.cellPercPadding.height ) {
+	if( y_rest > this.dimension.height   ) {
 		y_number = -1;
 	}
-	var x_num_return = parseInt(x_number);
+	
+	var x_num_return = parseInt(x_number);	//cut off the precision ...we only need the index
 	var y_num_return = parseInt(y_number);
+	
 	//we cannot 'be' more than columns amount
-	if(x_num_return > this.columns) {
+	if(x_num_return > this.columns + 1 ) {
 		x_num_return = -1;
 	}
-	if(y_num_return > this.rows) {
+	if(y_num_return > this.rows + 1) {
 		y_num_return = -1;
 	}
-	
-	
+	if(cfg.DEBUG_COORDS == true) { //debugging output ...only enabled if we have set the flag
+		console.log("x_cell_norm: "+x_norm+" (head.x:"+headingStart.x
+		+") y_cell_norm: "+y_norm+" (head.y:"+headingStart.y+")");
+  		console.log("x_cell_raw : "+x_number+" y_cell_raw: "+y_number);
+  		console.log("x_rest: "+x_rest+" y_rest: "+y_rest);
+  		console.log("x_num_return: "+x_num_return+" y_num_return: "+y_num_return);
+  	}
 	return {x_cell : x_num_return, y_cell : y_num_return};
 }
