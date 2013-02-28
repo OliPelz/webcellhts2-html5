@@ -166,6 +166,10 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   				if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
   						plateConfig.resetPlateLayoutAndRedraw();
   				}
+  				//if we have clicked the heading row
+  				if(cellIndex.x_cell == 0 && cellIndex.y_cell > 0) {
+  						plateConfig.setRowToTypeAndDraw(cellIndex.y_cell - 1, chosenWellType);
+  				}
   				//if we have a 'normal' cell
   				if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
   						plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, chosenWellType);  //this is for testing

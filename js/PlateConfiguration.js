@@ -53,6 +53,12 @@ de.dkfz.signaling.webcellhts.PlateConfiguration = function(plateFormat, ctx) {
 	this.wellStateArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows, this.columns);
 	//this array holds the former well states...this is important for undo functionality
 	this.undoWellStateArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows, this.columns);
+	//this holds the heading row state
+	this.headRowArr = new Array(this.rows);
+	this.undoHeadRowArr = new Array(this.rows); //contains undo information
+	//this holds the column state arr
+	this.headColumnArr = new Array(this.columns);
+	this.undoHeadColumnArr = new Array(this.columns);
 	this.ctx = ctx;  
 	this.cfg = de.dkfz.signaling.webcellhts.Config;
 	//this array holds the html5 canvas rectangle objects of the wells of the plate
@@ -60,6 +66,7 @@ de.dkfz.signaling.webcellhts.PlateConfiguration = function(plateFormat, ctx) {
 	this.posCalculator = new de.dkfz.signaling.webcellhts.PositionCalculator(this.rows, this.columns);
 	this.cellDimension = this.posCalculator.getCellDimension();
 	this._emptyWellStates();
+	this._emptyHeadingStates();
 
 	this._initCanvasCellObj();
 	this.jsHelper = new de.dkfz.signaling.b110.JsHelper();
@@ -98,9 +105,44 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype._drawHeadings = functi
 		//move to next position
 		startPos.x += this.cellDimension.width + this.cfg.CELL_PADDING.x;
 	}
+}
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setRowToTypeAndDraw = function( row, type ) {
+	var i = row;
+	if( i < 0 ) {
+		return;
+	}
+	var oldState  = this.headRowArr[i]; //temp save the old state..var will be overwritten later
+	//if we have clicked with the same type again on the head row, undo the state
+	//so a simple undo feature is clicking two times on the head row
+	if(type == this.headRowArr[i]) {  
+		 this.headRowArr[i] = this.undoHeadRowArr[i]; //restore
+		 this.undoHeadRowArr[i] = type;
+		 for(var j = 0; j < this.columns; j++) { 
+		 	type = this.undoWellStateArr[i][j];//restore the old state for the complete row
+		 	this.wellStateArr[i][j] = type;
+		 	this.undoWellStateArr[i][j]  = this.wellStateArr[i][j];
+		 	this.html5Wells[i][j].currentType = this.wellStateArr[i][j];
+			this.html5Wells[i][j].drawAll();
+		 }
+	}
+	else {  // if we clicked here...overlay with a complete row type
+		this.undoHeadRowArr[i] = this.headRowArr[i];
+		this.headRowArr[i] = type;
+		for(var j = 0; j < this.columns; j++) {
+			var oldType = this.wellStateArr[i][j];  //save the old type. filling a row is a simple overlay over the old one
+			this.wellStateArr[i][j] = type;
+			this.undoWellStateArr[i][j] = oldType;
+			this.html5Wells[i][j].currentType = this.wellStateArr[i][j];
+			this.html5Wells[i][j].drawAll();
+		}
+	}
 	
+	//save the old state for next round or later undo commands
+	this.undoHeadRowArr[i] = oldState;
 	
 }
+
+
 //this resets the complete plate layout and redraws the cells
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellToTypeAndDraw = function( row, col, type ) {
 	var i = row;
@@ -111,12 +153,15 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellToTypeAndDraw =
 	if( j < 0 ) {
 		return;
 	}
+	var oldType = this.wellStateArr[i][j]; //temp save the old state..var will be overwritten later
+	
 	//if we have clicked with the same type again on the well, undo the state
 	//so a simple undo feature is clicking two times on a cell
 	if(type == this.wellStateArr[i][j]) {
-		 type = this.undoWellStateArr[i][j];
+		 type = this.undoWellStateArr[i][j]; //restore the old state
 	}
-	var oldType = this.wellStateArr[i][j];
+	
+	
 	this.wellStateArr[i][j] = type;
 	//save the old state for next round or later undo commands
 	this.undoWellStateArr[i][j] = oldType;
@@ -140,10 +185,25 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setAllWellStates = fun
 		}
 	}
 }
+//inits all internal heading arrays with type
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setAllHeadingStates = function(type) {
+	for(var i = 0; i < this.rows; i++) {
+		this.headRowArr[i] = type;
+		this.undoHeadRowArr[i] = type;
+	}
+	for(var j = 0; j < this.columns; j++) {
+		this.headColumnArr[j] = type;
+		this.undoHeadColumnArr[j] = type;
+	}
+}
 
+//inits all internal heading array states with the type 'empty'
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype._emptyWellStates = function() {
+	this.setAllHeadingStates(this.cfg.CELL_TYPE.empty);
+}
 
 //inits all internal wellStateArr array with the type 'empty'
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype._emptyWellStates = function() {
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype._emptyHeadingStates = function() {
 	this.setAllWellStates(this.cfg.CELL_TYPE.empty);
 }
 //crete and init the cells for that plate (canvas cell objects)
