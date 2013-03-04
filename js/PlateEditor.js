@@ -164,7 +164,7 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   				var cellIndex = posCalculator.getGridIndexForCoordinate({x:coord.x,y:coord.y});					
   				//first check if we hit the X...delete the whole layout
   				if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
-  						plateConfig.resetPlateLayoutAndRedraw();
+  						plateConfig.resetPlateLayoutForUndo();
   				}
   				//if we have clicked the heading row
   				if(cellIndex.x_cell == 0 && cellIndex.y_cell > 0) {

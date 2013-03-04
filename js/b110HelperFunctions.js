@@ -63,6 +63,20 @@ de.dkfz.signaling.b110.JsHelper.prototype.create2DArray = function(rows, columns
 	}
 	return array2D;
 }
+//copy arrays of same size (copy source array content to destination array content)
+de.dkfz.signaling.b110.JsHelper.prototype.copy2DArrayContent = function(srcArr, destArr){
+	if(srcArr.length != destArr.length) {
+		return;
+	}
+	for(var i = 0; i < srcArr.length; i++) {
+		if(srcArr[i].length != destArr.length) {
+			return;
+		}
+		for(var j = 0; j < srcArr[i]; j++) {
+			destArr[i][j] = srcArr[i][j];
+		}
+	}			
+}
 de.dkfz.signaling.b110.JsHelper.prototype.getSmallerNum = function(a, b) {
 	var smaller = a;
 	if(b < smaller) {
