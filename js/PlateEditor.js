@@ -128,7 +128,6 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		var canvas = this.canvas;
 		var jsHelper = this.jsHelper;
 		
-		var cellRangeCoordsX = this.plateConfig.getPlateRangeCoordinates("x");
 		var mouse_downed = false;
 		var posCalculator = this.plateConfig.posCalculator;
 		var startPoint = {};
@@ -191,9 +190,7 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   					}
   					mouse_downed = false;
   					var current_endpoint_coords = jsHelper.getCursorPosition(canvas, event);
-  					jsHelper.drawLine(my_start_coords, current_endpoint_coords, 1, "green", ctx);
-  					var coordinates = jsHelper.getCoordinatesOfInterestForLine(my_start_coords, current_endpoint_coords, cellRangeCoordsX);
-  					
+  					jsHelper.drawLine(my_start_coords, current_endpoint_coords, 1, "green", ctx);  					
   					if(coordinates.length > 1 ) {
   						//do some fancy things
   					}

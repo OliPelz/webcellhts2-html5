@@ -43,20 +43,24 @@ if(!de.dkfz.signaling.webcellhts)
 //this class is for configurating of any kind of high-throughput 
 //rnai screening
 de.dkfz.signaling.webcellhts.Cell = function(rowIndex, columnIndex, 
-										dimensions, drawPosition, currentType, ctx) {	
+										dimensions, drawPosition, ctx) {	
 	//init stuff
 	this.rowIndex = rowIndex;
 	this.colIndex = columnIndex;
 	this.dimensions = dimensions;   //the width and height as an object
+	this.cfg = de.dkfz.signaling.webcellhts.Config;
 	//this array holds the state of the wells of the plate, this is a Config.WELLTYPE obj
-	this.currentType = currentType;
+	this.currentType = this.cfg.CELL_TYPE.empty;
 	//the upper left position of it, this is an object of type: {x:..,y:..}; 
 	this.drawPosition = drawPosition; 
 	this.ctx = ctx;  
-	this.cfg = de.dkfz.signaling.webcellhts.Config;
 	this.helper = new de.dkfz.signaling.b110.JsHelper();	
+	
 }
-
+//draw the shape and the text
+de.dkfz.signaling.webcellhts.Cell.prototype.setCurrentType = function(type){
+	this.currentType = type;
+}
 
 //draw the shape and the text
 de.dkfz.signaling.webcellhts.Cell.prototype.drawAll = function(){
@@ -134,7 +138,8 @@ de.dkfz.signaling.webcellhts.Cell.prototype.numberToRowCode = function(number) {
 de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText = function(startPos, text, cellDimension, ctx) { 
 	var cell = new de.dkfz.signaling.webcellhts.Cell(null, null, 
 										cellDimension, null, 
-										de.dkfz.signaling.webcellhts.Config.CELL_TYPE.other, ctx);
+										 ctx);
+	cell.setCurrentType(de.dkfz.signaling.webcellhts.Config.CELL_TYPE.other);
 	cell.drawCellShapeWithText(startPos, text);
 }
 	 

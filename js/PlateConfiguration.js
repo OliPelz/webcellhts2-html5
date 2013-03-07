@@ -41,7 +41,10 @@ if(!de.dkfz.signaling.webcellhts)
 // ---------------------------------------------------------------------------------------------------------------------
 
 //this class is for configurating of any kind of high-throughput 
-//rnai screening
+//rnai screening plates
+// its logic of the plate states is based on two levels (classical MVC design - this class here is the Controller)
+// 1. first the internal configuration represented by the clickregistry (Model)
+// 2. second: its graphic representation by the html5wells datastructure (list of Cell objects) (this is our View)
 de.dkfz.signaling.webcellhts.PlateConfiguration = function(plateFormat, ctx) {
 	//init stuff
 	this.plateFormat = plateFormat;
@@ -49,28 +52,15 @@ de.dkfz.signaling.webcellhts.PlateConfiguration = function(plateFormat, ctx) {
 	//this array holds the state of the wells of the plate
 	this.rows = rowColObj.rows;
 	this.columns = rowColObj.columns;
-	//this array holds the former well states (e.g. empty,positive)...this is important for undo functionality
-	this.undoWellStateArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows, this.columns);
-	//this holds the current heading row click state
-	this.headRowClickedArr = {clickedId: -1, clickedType: -1};
-	this.undoHeadRowArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows, this.columns);//contains undo information for all rows
-	//this holds the current column state arr
-	this.headColumnClickedArr = new Array(this.columns);
-	this.undoHeadColumnArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.columns, this.rows);
-	this.operationIdCounter = 0; //this is the id counter of user operations (clicks to wells or header inc. 'x')
-	this.deletePlateId = 0;   //this saves the id of the last deletion operation (for the delete or clear button e.g. X)
 	this.ctx = ctx;  
 	this.cfg = de.dkfz.signaling.webcellhts.Config;
 	//this array holds the html5 canvas rectangle objects of the wells of the plate
 	this.html5Wells = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows, this.columns);
 	this.posCalculator = new de.dkfz.signaling.webcellhts.PositionCalculator(this.rows, this.columns);
 	this.cellDimension = this.posCalculator.getCellDimension();
-	this.initCanvasCellObj();
-
-	this.resetConfigAndRedraw();
-
-	
+	this.initCanvasCellObj();	
 	this.jsHelper = new de.dkfz.signaling.b110.JsHelper();
+	this.clickRegistry = new de.dkfz.signaling.webcellhts.ClickRegistry(this.rows, this.columns);
 }
 //draw all...this draws a complete empty and freshly initalized plate with the border, the headings and the cells
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAll = function() {
@@ -111,82 +101,65 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawHeadings = functio
 //if clicked again on the same button (but works only if clicked immediately again)
 
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setRowToTypeAndDraw = function( row, type ) {
-	this.operationIdCounter++;  //this is a user operation so increase id counter..we keep track of all user interaction
 	var i = row;
 	if( i < 0 ) {
 		return;
-	}	 
-	//if we have clicked with the same type again on the head row AND our 'complete row click' was the one INMMEDIATELY before undo the state
-	//so a simple undo feature is clicking two times on the head row
-	if(type == this.headRowClickedArr.clickedType && this.operationIdCounter == this.headRowClickedArr.clickedId + 1){  
-		 this.headRowClickedArr.clickedType =  this.cfg.CELL_TYPE.empty;//reset state
-		 this.addWellTypeToHtml5Row(i, this.undoHeadRowArr[i]); //restore to html5 arr
-		 //draw the row: fill the complete row (all columns) with type already stored in the arr
-		for(var j = 0; j < this.columns; j++) {
-			this.html5Wells[i][j].drawAll();
+	}	
+	var newRowCellState = this.clickRegistry.clickRowHeadState(row);
+	
+	var changes = false;
+	if(newRowCellState == this.cfg.HEAD_CELL_STATE.delete ) {
+		this.clickRegistry.setRowCells(row, type);
+		changes = true;
+	}
+	else if(newRowCellState == this.cfg.HEAD_CELL_STATE.undo ) {
+		this.clickRegistry.undoRowCells(row);
+		changes = true;
+	}
+	
+	if(changes) { //draw the model for real only if something is different
+		for(var column = 0; column < this.columns; column++) {
+			this.html5Wells[row][column].currentType = this.clickRegistry.getCurrentCellType(row, column);
+			this.html5Wells[row][column].drawAll();
 		}
 	}
-	else{  // if we clicked here...overlay the complete row with specific type
-		this.headRowClickedArr[i] = type;   //store the clicked type for next round
-		this.undoHeadRowArr[i] = this.extractWellTypeOfHtml5Row(i);  //save the last state of all cells in the row for later undo
-		//draw the row: fill the complete row (all columns) with specific type
-		for(var j = 0; j < this.columns; j++) {
-			this.html5Wells[i][j].currentType = type;
-			this.html5Wells[i][j].drawAll();
-		}
-		this.headRowClickedArr.clickedId = this.operationIdCounter; //store the last clicked id so if the next thing wil be the same type we will undo (but only if exact the next click)
-	}
-	this.headRowClickedArr.clickedType = type;
+	
+	
 }
 //this function clears the complet plate configuration and has a undo functionality
 //if clicked again on the undo button (but works only if clicked immediately again)
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.resetPlateLayoutForUndo = function() {
-	this.operationIdCounter++;  //this is a user operation so increase id counter..we keep track of all user interaction
-	
-	if(this.operationIdCounter != this.deletePlateId + 1) { //if we clear the plate..clear only if the previous step was also a clear step (works also if we clear for the first step)
-		this.copyWellStatesFromHtml5Wells(this.undoWellStateArr);
-		//clear the current
-		this.emptyWellStates(); 
-		//inc counter if we have deleted now to keep track of undo operations (only allowed immediately afterwards)
-		this.deletePlateId = this.operationIdCounter;
-	}	
-	//if we have clicked the delete button before...this is our UNDO operation..but only if we have clicked it IMMEDIATELY BEFORE..not later
-	else { //if we have clicked it before restore the old states
-			this.deletePlateId = 0;
-			this.copyWellStatesToHtml5Wells(this.undoWellStateArr);
-			//clear undo arr
-			this.emptyUndoWellStates();
-	}
-	//draw
-	this.drawAllCells();
+	var newXCellState = this.clickRegistry.clickXHeadState();
 
+	if(newXCellState == this.cfg.HEAD_CELL_STATE.delete ) {
+		this.clickRegistry.setAllCells(this.cfg.CELL_TYPE.empty);
+	}
+	else if(newXCellState == this.cfg.HEAD_CELL_STATE.undo) {
+		this.clickRegistry.undoAllCells();
+	}
 	
+	//drawall cells (this is our View)
+	for(var i = 0; i < this.rows; i++) {
+		for(var j = 0; j < this.columns; j++) {
+			this.html5Wells[i][j].currentType = this.clickRegistry.getCurrentCellType(i, j);
+			this.html5Wells[i][j].drawAll();
+			
+		}
+	}
+
 }
 
 
 //this is the master drawing function...with storing undo info etc.
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellToTypeAndDraw = function( row, col, type ) {
-	this.operationIdCounter++; //this is a user operation
-	var i = row;
-	var j = col;
-	if( i < 0 ) {
-		return;
+	var currType = this.clickRegistry.getCurrentCellType(row, col);
+	var newType = this.clickRegistry.clickSingleCell(row, col, type);
+	//only draw the internal state (represented by the clickregistry) if something is different
+	if(currType != newType) {
+		//set the cell with the new type for real
+		this.html5Wells[row][col].setCurrentType(newType);
+		this.html5Wells[row][col].drawAll();
 	}
-	if( j < 0 ) {
-		return;
-	}
-	var oldType = this.html5Wells[i][j].currentType; //temp save the old state..var will be overwritten later
-	
-	//if we have clicked with the same type again on the well, undo the state
-	//so a simple undo feature is clicking two times on a cell
-	if(type == oldType) {
-		 type = this.undoWellStateArr[i][j]; //restore the old state
-	}
-	//set the new type for the current cell
-	this.html5Wells[i][j].currentType = type;
-	//save the old state for next round or later undo commands
-	this.undoWellStateArr[i][j] = oldType;
-	this.html5Wells[i][j].drawAll();
 }
 
 //this resets the complete plate layout and redraws the cells
@@ -202,54 +175,6 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.resetConfigAndRedraw =
 	this.drawAllCells();	
 }
 
-//inits all internal undo wellstate array with the type type
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setAllUndoWellStates = function(type) {
-	for(var i = 0; i < this.rows; i++) {
-		for(var j = 0; j < this.columns; j++) {
-			this.undoWellStateArr[i][j] = type;
-		}
-	}
-}
-
-
-//inits all internal wellStateArr array with the type type
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setAllWellStates = function(type) {
-	for(var i = 0; i < this.rows; i++) {
-		for(var j = 0; j < this.columns; j++) {
-			this.html5Wells[i][j].currentType = type;
-		}
-	}
-}
-//inits all internal heading arrays with type
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setAllHeadingStates = function(type) {
-	for(var i = 0; i < this.rows; i++) {
-		this.headRowClickedArr[i] = type;
-		for(var j = 0; j < this.columns; j++) {
-			this.undoHeadRowArr[i][j] = type;
-		}
-	}
-	for(var i = 0; i < this.columns; i++) {
-		this.headColumnClickedArr[i] = type;
-		for(var j = 0; j < this.rows; j++) {
-			this.undoHeadColumnArr[i][j] = type;
-		}
-	}
-}
-
-//inits all internal undo well state array states with the type 'empty'
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.emptyUndoWellStates = function() {
-	this.setAllUndoWellStates(this.cfg.CELL_TYPE.empty);
-}
-
-//inits all internal heading array states with the type 'empty'
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.emptyWellStates = function() {
-	this.setAllWellStates(this.cfg.CELL_TYPE.empty);
-}
-
-//inits all internal wellStateArr array with the type 'empty'
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.emptyHeadingStates = function() {
-	this.setAllHeadingStates(this.cfg.CELL_TYPE.empty);
-}
 //create and init the cells for that plate (canvas cell objects)
 //do not draw them, only initialize the shape and position
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.initCanvasCellObj = function(){
@@ -262,8 +187,7 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.initCanvasCellObj = fu
 		//we have to copy because otherwise we change the same reference all the time
 			var copiedCurrentCoordinate = {x:currentDrawCoordinate.x,y:currentDrawCoordinate.y};
 			this.html5Wells[i][j] = new de.dkfz.signaling.webcellhts.Cell(i, j, 
-										this.cellDimension, copiedCurrentCoordinate, 
-										this.html5Wells[i][j], this.ctx);
+										this.cellDimension, copiedCurrentCoordinate, this.ctx);
 			//move forward to next column...dont forget the padding for the cell
 			currentDrawCoordinate.x += this.cellDimension.width + this.cfg.CELL_PADDING.x;
 		}
@@ -281,17 +205,6 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAllCells = functio
 		}
 	}
 }
-
-//draw all the cells with the current type etc...
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAllCells = function(){
-	for(var i = 0; i < this.rows; i++) {
-		for(var j = 0; j < this.columns; j++) {
-			this.html5Wells[i][j].drawAll();
-		}
-	}
-}
-
-
 
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawBorders = function() {
 	/*var lineColor = this.cfg.WELLPLATE_LINECOLOR;
@@ -317,27 +230,6 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.getCellDimension = fun
 	return this.cellDimension;
 }
 
-//this gives the range of the cells e.g. x-axis could be:
-// (x_start:150,x_stop:200),(x_start:210,x_stops:260)
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.getPlateRangeCoordinates = function(axis) {
-	var returnArray = new Array();
-	if(this.html5Wells.length  < 1) {
-		return new Array();
-	}
-	var firstRow = this.html5Wells[0];
-	
-	if(axis == "x") {
-		for(var i = 0; i < firstRow.length; i++) {
-			returnArray.push(firstRow[i].getBorders());
-		}
-	}
-	else if (axis == "y") {
-		for(var i = 0; i < this.html5Wells.size();i++) {
-			returnArray.push(this.html5Wells[i].getBorders());
-		}
-	}
-	return returnArray;
-}
 //this copies the well states from an html5 array to an empty standard 2D array 
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.copyWellStatesToHtml5Wells = function(srcArr) {
 	if(srcArr.length != this.html5Wells.length) {

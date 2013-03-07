@@ -63,6 +63,23 @@ de.dkfz.signaling.b110.JsHelper.prototype.create2DArray = function(rows, columns
 	}
 	return array2D;
 }
+//set a complete function with type
+de.dkfz.signaling.b110.JsHelper.prototype.fill2DArrayWithType = function(arr, type) {
+	for(var i = 0; i < arr.length; i++) {
+		for(var j = 0; j < arr[i].length; j++) {
+			arr[i][j] = type;
+		}
+	}
+	return arr;
+}
+
+//set a complete function with type
+de.dkfz.signaling.b110.JsHelper.prototype.fill1DArrayWithType = function(arr, type) {
+	for(var i = 0; i < arr.length; i++) {
+			arr[i] = type;
+	}
+	return arr;
+}
 //copy arrays of same size (copy source array content to destination array content)
 de.dkfz.signaling.b110.JsHelper.prototype.copy2DArrayContent = function(srcArr, destArr){
 	if(srcArr.length != destArr.length) {

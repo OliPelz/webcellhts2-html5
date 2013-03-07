@@ -21,6 +21,7 @@ de.dkfz.signaling.webcellhts.Config = {
 	CELL_FONT : "san-serif",
 	CELL_FONT_COLOR : "black",
 	CELL_DIMENSION : {width : 35, height : 35},
+	HEAD_CELL_STATE : {none:0, delete:1, undo:2},  //the states a heading cell can be in (3 at all) when we click on
 // position and size of the drawing wellplate
 	WELLPLATE_POS : {x:50, y:50},   //the upper left start of our plate IN the canvas
 	//WELLPLATE_WIDTH : 250,
