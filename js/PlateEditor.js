@@ -70,7 +70,6 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId) {
 									,  {width: this.canvas.width, height: this.canvas.height }
 									, {x: 0 , y: 0}
 									, this.ctx);
-      	this.menueTools = new de.dkfz.signaling.webcellhts.MenueTools(this.ctx);
 		this.plateConfig = new de.dkfz.signaling.webcellhts.PlateConfiguration(
 								$("#"+this.plateFormatId).val(), this.ctx
 							);
@@ -118,7 +117,7 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._redraw = function() {
 }
 //this method manages all the event listeners for the complete object
 de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = function() {
-	var chosenWellType = this.menueTools.chosenWellType;
+	
 	var plateConfig = this.plateConfig;
 	
 	//define some enclosures to be accessed from within the method
@@ -167,11 +166,11 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   				}
   				//if we have clicked the heading row
   				if(cellIndex.x_cell == 0 && cellIndex.y_cell > 0) {
-  						plateConfig.setRowToTypeAndDraw(cellIndex.y_cell - 1, chosenWellType);
+  						plateConfig.setRowToTypeAndDraw(cellIndex.y_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
   				}
   				//if we have a 'normal' cell
   				if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
-  						plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, chosenWellType);  //this is for testing
+  						plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);  //this is for testing
   				}
   					
   				

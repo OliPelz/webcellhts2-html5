@@ -6,7 +6,21 @@ loadPlateEditorCtxMenu = function(plateEdit) {
     $.contextMenu({
         selector: '#plateEditor', 
         callback: function(key, options) {
-            if(key == "single_select") {
+        	if(key == "positive_well") {
+            	cfg.CURRENT_SELECTED_CELL_TYPE = cfg.CELL_TYPE.positive;
+            }
+            else if(key == "negative_well") {
+            	cfg.CURRENT_SELECTED_CELL_TYPE = cfg.CELL_TYPE.negative;
+            }
+            else if(key == "control_well") {
+            	cfg.CURRENT_SELECTED_CELL_TYPE = cfg.CELL_TYPE.control;
+            }
+            else if(key == "empty_well") {
+            	cfg.CURRENT_SELECTED_CELL_TYPE = cfg.CELL_TYPE.empty;
+            }
+        
+        //---------
+            else if(key == "single_select") {
             	plateEditor.currDrawTool = cfg.DRAW_TOOL.POINT;
             }
             else if(key == "line_tool") {
@@ -17,11 +31,16 @@ loadPlateEditorCtxMenu = function(plateEdit) {
             }
         },
         items: {
+        	"positive_well": {name: "Positive Well"},
+        	"negative_well": {name: "Negative Well"},
+        	"control_well": {name: "Control Well"},
+        	"empty_well": {name: "Empty Well"},
+        	"sep1": "---------",
         	"single_select": {name: "Single Select"},
         	"line_tool": {name: "Line Select"},
         	"rectangle_tool":{name: "Rectangle Select"},
             "save": {name: "Save", icon: "save"},
-            "sep1": "---------",
+            "sep2": "---------",
             "refresh": {name: "Refresh", icon: "refresh"}
             //"copy": {name: "Copy", icon: "copy"},
             //"paste": {name: "Paste", icon: "paste"},

@@ -113,3 +113,24 @@ try {
 } catch(err) {}
 ctx.restore();
 }
+
+function print_1D_arr(arr) {
+		var currOutput = null;
+		for(var col = 0; col < arr.length; col++) {
+			if(currOutput == null) {
+				currOutput = arr[col];	
+			}
+			else {
+				currOutput += "\t"+arr[col];	
+			}
+		}
+		return currOutput;
+}
+function console_log_2D_arr(arr) {
+	for(var row = 0; row < arr.length; row++) {
+		console.log(print_1D_arr(arr[row]));
+	}
+}
+function console_log_2D_arr(rowIdx, arr, desc) {
+	console.log(desc+":\t"+print_1D_arr(arr[rowIdx]));
+}

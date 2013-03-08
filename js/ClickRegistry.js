@@ -55,10 +55,11 @@ de.dkfz.signaling.webcellhts.ClickRegistry = function(rows, columns) {
 		this.userInteractionCounter = 0;  // this counter stores information about the current number of user interactions (clicking of cell etc.)
 		//set up some dictioniaries to store heading information and fill them with standard init stuff
 		//we need those structs to store undo info: the state respresents the state the heading is in (activated=true, deactivated = false ), clickId(Arr): stores the userinteractioncounter for a specific cell
+		var rowTypeUndoArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows , this.columns );
 		this.xCellState = {state:this.cfg.HEAD_CELL_STATE.none, clickId: 0};
 		this.rowStates = {stateArr: this.jsHelper.fill1DArrayWithType(new Array(this.rows),false), 
 						  clickIdArr: this.jsHelper.fill1DArrayWithType(new Array(this.rows),0),
-						  rowTypeUndoArr: this.jsHelper.fill1DArrayWithType(new Array(this.rows), this.cfg.CELL_TYPE.empty)
+						  rowTypeUndoArr: this.jsHelper.fill2DArrayWithType(rowTypeUndoArr, this.cfg.CELL_TYPE.empty )
 						  };
 		this.columnStates = {stateArr: this.jsHelper.fill1DArrayWithType(new Array(this.columns),false), 
 						  clickIdArr: this.jsHelper.fill1DArrayWithType(new Array(this.columns),0)};
@@ -114,22 +115,19 @@ de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoAllCells = function() {
 //set all cells (with undo information) ...for a complete row
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.setRowCells = function(rowIdx, type) {
 	for(var column = 0; column < this.columns; column++) {
-		//change things around only if changed
-		//if(type != this.currentWellStateArr[rowIdx][column]) { //don't do anything if we overwrite the same color
-			//this.undoWellStateArr[rowIdx][column] = this.currentWellStateArr[rowIdx][column];
-			this.rowStates.rowTypeUndoArr[rowIdx] = this.currentWellStateArr[rowIdx][column];
+			this.rowStates.rowTypeUndoArr[rowIdx][column] = this.currentWellStateArr[rowIdx][column];
 			this.currentWellStateArr[rowIdx][column] = type;
-		//}
 	}
 }
 //undo all cells (with undo information) ...for a complete row
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoRowCells = function(rowIdx) {
 	for(var column = 0; column < this.columns; column++) {
 		//change things around
-		var tmpVal = this.rowStates.rowTypeUndoArr[rowIdx];
-		this.undoWellStateArr[rowIdx][column] = this.currentWellStateArr[rowIdx][column];
+		var tmpVal = this.rowStates.rowTypeUndoArr[rowIdx][column];
 		this.currentWellStateArr[rowIdx][column] = tmpVal;
 	}
+	//undo array must be reset: this is a trick
+	this.jsHelper.fill1DArrayWithType(this.rowStates.rowTypeUndoArr[rowIdx], this.cfg.CELL_TYPE.empty );
 }
 
 //set all cells (with undo information) ...for a complete row
