@@ -138,7 +138,7 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		var i = 0;
 		
 		//this method is for debugging...disable it later
-		if(this.cfg.DEBUG_COORDS == true) {
+		if(cfg.DEBUG_COORDS == true) {
 			$('#plateEditor').mousemove(function(event) {
 	 				var my_start_coordinates = jsHelper.getCursorPosition(canvas, event);
 	 				var headingStart = posCalculator.getActualUpperLeftHeadingStart();
@@ -165,11 +165,15 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   						plateConfig.resetPlateLayoutForUndo();
   				}
   				//if we have clicked the heading row
-  				if(cellIndex.x_cell == 0 && cellIndex.y_cell > 0) {
+  				else if(cellIndex.x_cell == 0 && cellIndex.y_cell > 0) {
   						plateConfig.setRowToTypeAndDraw(cellIndex.y_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
   				}
+  				//if we have clicked the heading columns
+  				else if(cellIndex.x_cell > 0 && cellIndex.y_cell == 0) {
+  						plateConfig.setColumnToTypeAndDraw(cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
+  				}
   				//if we have a 'normal' cell
-  				if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
+  				else if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
   						plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);  //this is for testing
   				}
   					
@@ -182,6 +186,17 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   					//this is doing the trick of drawing a line : add evetlistener of mouse
   					//movevent within our event listener so it will only be called while we already have clicked 'down'
   					mouse_downed = true;		
+  			});
+  			$('#plateEditor').mousemove(function(event) {
+  					if(mouse_downed) {
+		 				my_end_coords = jsHelper.getCursorPosition(canvas, event);
+		 				de.dkfz.signaling.b110.JsHelper.prototype.drawLine(my_start_coords
+		 																   ,my_end_coords
+		 																   ,1
+		 																   ,"black"
+		 																   ,ctx);
+  					}
+  						
   			});
   			$('#plateEditor').mouseup(function(event) {
   					if(!mouse_downed) {

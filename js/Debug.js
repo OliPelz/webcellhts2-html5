@@ -126,6 +126,24 @@ function print_1D_arr(arr) {
 		}
 		return currOutput;
 }
+function print_first_element_of_3D_arr(arr, idxArr) {
+	var output = null;
+	for(var i = 0; i < arr.length; i++) {
+		var el = arr[i][idxArr[i]];
+		if(output == null) {
+			output = el;
+		}
+		else {
+			output += "\t"+el;
+		}
+	}
+	return output;
+}
+function console_log_3D_arr_highest_element(arr, indxArr)  {
+	for(var row = 0; row < arr.length; row++) {
+		console.log(print_first_element_of_3D_arr(arr[row], indxArr[row]));
+	}
+}
 function console_log_2D_arr(arr) {
 	for(var row = 0; row < arr.length; row++) {
 		console.log(print_1D_arr(arr[row]));

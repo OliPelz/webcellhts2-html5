@@ -55,6 +55,18 @@ de.dkfz.signaling.b110.JsHelper.prototype.isElementInNode = function(element){
 	}
 	return false;
 }
+//create empty 3d array
+de.dkfz.signaling.b110.JsHelper.prototype.create3DArray = function(rows, columns){
+	var array3D = new Array(rows);
+	for(var i = 0; i < rows; i++) {
+		array3D[i] = new Array(columns);
+		for(j = 0; j < columns; j++) {
+			array3D[i][j] = new Array();
+		}
+	}
+	return array3D;
+}
+
 //get empty new 2d array
 de.dkfz.signaling.b110.JsHelper.prototype.create2DArray = function(rows, columns){
 	var array2D = new Array(rows);
@@ -62,6 +74,15 @@ de.dkfz.signaling.b110.JsHelper.prototype.create2DArray = function(rows, columns
 		array2D[i] = new Array(columns);
 	}
 	return array2D;
+}
+//set a complete function with type
+de.dkfz.signaling.b110.JsHelper.prototype.addTo3DArrayType = function(arr, type) {
+	for(var i = 0; i < arr.length; i++) {
+		for(var j = 0; j < arr[i].length; j++) {
+			arr[i][j].push(type);
+		}
+	}
+	return arr;
 }
 //set a complete function with type
 de.dkfz.signaling.b110.JsHelper.prototype.fill2DArrayWithType = function(arr, type) {
@@ -80,6 +101,16 @@ de.dkfz.signaling.b110.JsHelper.prototype.fill1DArrayWithType = function(arr, ty
 	}
 	return arr;
 }
+//set a complete function with type
+de.dkfz.signaling.b110.JsHelper.prototype.createAndInit1DArray = function(size, type) {
+	var arr = new Array(size);
+	for(var i = 0; i < arr.length; i++) {
+			arr[i] = type;
+	}
+	return arr;
+}
+
+
 //copy arrays of same size (copy source array content to destination array content)
 de.dkfz.signaling.b110.JsHelper.prototype.copy2DArrayContent = function(srcArr, destArr){
 	if(srcArr.length != destArr.length) {

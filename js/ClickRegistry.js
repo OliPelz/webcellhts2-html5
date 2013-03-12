@@ -47,43 +47,36 @@ de.dkfz.signaling.webcellhts.ClickRegistry = function(rows, columns) {
 		this.jsHelper = new de.dkfz.signaling.b110.JsHelper();
 		this.cfg = de.dkfz.signaling.webcellhts.Config;
 		//the data structures for keeping track of everthing
-		this.currentWellStateArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows , this.columns ); //plus one because we also keep track of clicks into the heading row and column
-		this.undoWellStateArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows , this.columns );
+		this.currentWellStateArr = de.dkfz.signaling.b110.JsHelper.prototype.create3DArray(this.rows , this.columns ); 
+		this.currentWellPointerArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows , this.columns );
 		//init with type empty everything
-		this.jsHelper.fill2DArrayWithType(this.currentWellStateArr, this.cfg.CELL_TYPE.empty);
-		this.jsHelper.fill2DArrayWithType(this.undoWellStateArr, this.cfg.CELL_TYPE.empty );  //we have to set this differently, because undo arr must be different to currentarr in order that our algo works in the beginning
+		
+		this.jsHelper.addTo3DArrayType(this.currentWellStateArr, this.cfg.CELL_TYPE.empty);
+		this.jsHelper.fill2DArrayWithType(this.currentWellPointerArr, 0 );  //the array of array of array current pointer...for undo
 		this.userInteractionCounter = 0;  // this counter stores information about the current number of user interactions (clicking of cell etc.)
+		
 		//set up some dictioniaries to store heading information and fill them with standard init stuff
 		//we need those structs to store undo info: the state respresents the state the heading is in (activated=true, deactivated = false ), clickId(Arr): stores the userinteractioncounter for a specific cell
-		var rowTypeUndoArr = de.dkfz.signaling.b110.JsHelper.prototype.create2DArray(this.rows , this.columns );
 		this.xCellState = {state:this.cfg.HEAD_CELL_STATE.none, clickId: 0};
 		this.rowStates = {stateArr: this.jsHelper.fill1DArrayWithType(new Array(this.rows),false), 
 						  clickIdArr: this.jsHelper.fill1DArrayWithType(new Array(this.rows),0),
-						  rowTypeUndoArr: this.jsHelper.fill2DArrayWithType(rowTypeUndoArr, this.cfg.CELL_TYPE.empty )
-						  };
-		this.columnStates = {stateArr: this.jsHelper.fill1DArrayWithType(new Array(this.columns),false), 
-						  clickIdArr: this.jsHelper.fill1DArrayWithType(new Array(this.columns),0)};
-		//fill content of arrays
-		
+						  };	
+		this.columnStates = {	stateArr: this.jsHelper.fill1DArrayWithType(new Array(this.columns),false), 
+						  		clickIdArr: this.jsHelper.fill1DArrayWithType(new Array(this.columns),0),
+						  	};	
 }
 //this is the main function if the use is clicking a Single cell...keeping track of undo etc
 //does not draw or anything , just the logic behind keeping track and when to change a well type
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.clickSingleCell = function(row, column, type) {
 	//every user activity function must increase the userInteractionCounter
 	this.userInteractionCounter++;
-	//don't do anything if we do not get any new information here
-	if(type !=  this.currentWellStateArr[row][column] ) {
-		//&& this.undoWellStateArr[row][column] != this.currentWellStateArr[row][column]) {//if we have clicked
-		//change things around 
-		this.undoWellStateArr[row][column] = this.currentWellStateArr[row][column];
-		this.currentWellStateArr[row][column] = type;
-		//undo only if the type has changed but only if we have clicked the same well again
-	}else if(this.undoWellStateArr[row][column] != this.currentWellStateArr[row][column]) {
-		var tmpVal = this.undoWellStateArr[row][column];  //undo means change current and undo information
-		this.undoWellStateArr[row][column] = this.currentWellStateArr[row][column];
-		this.currentWellStateArr[row][column] = tmpVal;
+	var currentType= this.getCurrentCellType(row, column);
+	if( type !=  currentType ) { //set a new cell
+		this.addCurrentCellType(row, column, type);
+	}else  {  //undo
+		this.undoCurrentCellType(row, column, type);
 	}
-	return this.currentWellStateArr[row][column];
+	return this.getCurrentCellType(row, column);
 }
 //set all cells (with undo information) ...ignores equal cells which means cells of same type
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.setAllCells = function(type) {
@@ -115,27 +108,25 @@ de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoAllCells = function() {
 //set all cells (with undo information) ...for a complete row
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.setRowCells = function(rowIdx, type) {
 	for(var column = 0; column < this.columns; column++) {
-			this.rowStates.rowTypeUndoArr[rowIdx][column] = this.currentWellStateArr[rowIdx][column];
-			this.currentWellStateArr[rowIdx][column] = type;
+		this.addCurrentCellType(rowIdx, column, type);
 	}
 }
 //undo all cells (with undo information) ...for a complete row
-de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoRowCells = function(rowIdx) {
+de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoRowCells = function(rowIdx, type) {
 	for(var column = 0; column < this.columns; column++) {
-		//change things around
-		var tmpVal = this.rowStates.rowTypeUndoArr[rowIdx][column];
-		this.currentWellStateArr[rowIdx][column] = tmpVal;
+		    this.undoCurrentCellType(rowIdx, column, type);
 	}
-	//undo array must be reset: this is a trick
-	this.jsHelper.fill1DArrayWithType(this.rowStates.rowTypeUndoArr[rowIdx], this.cfg.CELL_TYPE.empty );
 }
 
-//set all cells (with undo information) ...for a complete row
+//set all cells (with undo information) ...for a complete column
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.setColumnCells = function(colIdx, type) {
 	for(var row = 0; row < this.rows; row++) {
-		//change things around
-		this.undoWellStateArr[row][colIdx] = this.currentWellStateArr[row][colIdx];
-		this.currentWellStateArr[row][colIdx] = type;
+		this.addCurrentCellType(row, colIdx, type);
+	}
+}
+de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoColumnCells = function(colIdx, type) {
+	for(var row = 0; row < this.rows; row++) {
+		this.undoCurrentCellType(row, colIdx, type);
 	}
 }
 
@@ -163,35 +154,74 @@ de.dkfz.signaling.webcellhts.ClickRegistry.prototype.clickXHeadState = function(
 	return this.xCellState.state;
 }
 
-//this keeps track if we click in the header row...for explanation og the algo see the method: clickXHeadState
+//this keeps track if we click in the header row...for explanation of the algo see the method: clickXHeadState
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.clickRowHeadState = function(rowIdx) {
 //every user activity function must increase the userInteractionCounter
 	this.userInteractionCounter++;
-	//this.rowStates.stateArr[rowIdx]  this.rowStates.clickIdArr[rowIdx]
-	//reset the button state anyways if the former click wasn't the same button at all!
 	if(this.userInteractionCounter != this.rowStates.clickIdArr[rowIdx] + 1) {
 		this.rowStates.stateArr[rowIdx]  = this.cfg.HEAD_CELL_STATE.none;
 	}
 	if(this.rowStates.stateArr[rowIdx] == this.cfg.HEAD_CELL_STATE.none ) {
 		this.rowStates.stateArr[rowIdx] = this.cfg.HEAD_CELL_STATE.delete;
 		this.rowStates.clickIdArr[rowIdx] = this.userInteractionCounter;  //set the click id to the current counter
-	}//2. change to undo mode : this state only if we were activated before and the last immediate last click 
-	//was the activation click (the undo functionality should only work if the last step RIGHT before was the activation step)
+	}
 	else if(this.rowStates.stateArr[rowIdx] == this.cfg.HEAD_CELL_STATE.delete 
 		&& this.userInteractionCounter == this.rowStates.clickIdArr[rowIdx] + 1) {
 		this.rowStates.stateArr[rowIdx] = this.cfg.HEAD_CELL_STATE.undo; 
 	}
 	return this.rowStates.stateArr[rowIdx];
 }
+de.dkfz.signaling.webcellhts.ClickRegistry.prototype.clickColHeadState = function(colIdx) {
+//every user activity function must increase the userInteractionCounter
+	this.userInteractionCounter++;
+	if(this.userInteractionCounter != this.columnStates.clickIdArr[colIdx] + 1) {
+		this.columnStates.stateArr[colIdx]  = this.cfg.HEAD_CELL_STATE.none;
+	}
+	if(this.columnStates.stateArr[colIdx] == this.cfg.HEAD_CELL_STATE.none ) {
+		this.columnStates.stateArr[colIdx] = this.cfg.HEAD_CELL_STATE.delete;
+		this.columnStates.clickIdArr[colIdx] = this.userInteractionCounter; 
+	}
+	else if(this.columnStates.stateArr[colIdx] == this.cfg.HEAD_CELL_STATE.delete 
+		&& this.userInteractionCounter == this.columnStates.clickIdArr[colIdx] + 1) {
+		this.columnStates.stateArr[colIdx] = this.cfg.HEAD_CELL_STATE.undo; 
+	}
+	return this.columnStates.stateArr[colIdx];
+}
 
 
 //this is the main function for getting a cell
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.getCurrentCellType = function(row, column) {
-	return this.currentWellStateArr[row][column];
+	var currentPointer = this.currentWellPointerArr[row][column];
+	var currentWell = this.currentWellStateArr[row][column][currentPointer];
+	return currentWell;
 }
-//this is the main function for getting a cell
-de.dkfz.signaling.webcellhts.ClickRegistry.prototype.getUndoCellType = function(row, column) {
-	return this.undoWellStateArr[row][column];
+//adding a cell to the history
+de.dkfz.signaling.webcellhts.ClickRegistry.prototype.addCurrentCellType = function(row, column, type) {
+	if(this.currentWellPointerArr[row][column] > this.currentWellStateArr[row][column].length - 1) {//avoid array out of bound
+		this.currentWellStateArr[row][column].push(type);
+		this.currentWellPointerArr[row][column] = this.currentWellPointerArr[row][column].length - 1; //update pointer to current
+	}
+	else {  //if we have undo something...overwrite new state
+		this.currentWellStateArr[row][column][++this.currentWellPointerArr[row][column]] = type; //this is equal to push array
+	}
+}
+//undoing the current celltype
+de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoCurrentCellType = function(row, column, type) {
+	do {	 //if we have found the same type try to go back in history until we have found anything different
+		this.decCurrentCellTypePointer(row, column); 
+		currType = this.getCurrentCellType(row, column);
+		if(this.currentWellPointerArr[row][column] == 0) {
+			break;
+		}	
+	}while( currType == type);
+}
+
+//undoing current pointed cell in history
+de.dkfz.signaling.webcellhts.ClickRegistry.prototype.decCurrentCellTypePointer = function(row, column) {
+	if(--this.currentWellPointerArr[row][column] < 0) {
+		this.currentWellPointerArr[row][column] = 0;
+	}
+	return this.currentWellPointerArr[row][column];
 }
 //this is the main function for getting a cell
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.getXCellState = function() {

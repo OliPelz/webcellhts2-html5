@@ -105,12 +105,10 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setRowToTypeAndDraw = 
 	if( i < 0 ) {
 		return;
 	}	
-	if(this.cfg.DEBUG_CLICK) { //debug output to analyse click registry correctness
-		console.log("before head row click");
-		//console_log_2D_arr(this.clickRegistry.currentWellStateArr);
-		console_log_2D_arr(0, this.clickRegistry.currentWellStateArr, "currentArr");
-		console_log_2D_arr(0, this.clickRegistry.undoWellStateArr, "undoArr");
-		console_log_2D_arr(0, this.clickRegistry.rowStates.rowTypeUndoArr, "headRowArr");
+	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
+		console.log("before row click: ");
+		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
+											, this.clickRegistry.currentWellPointerArr );
 	}
 	var newRowCellState = this.clickRegistry.clickRowHeadState(row);
 	
@@ -120,7 +118,7 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setRowToTypeAndDraw = 
 		changes = true;
 	}
 	else if(newRowCellState == this.cfg.HEAD_CELL_STATE.undo ) {
-		this.clickRegistry.undoRowCells(row);
+		this.clickRegistry.undoRowCells(row, type);
 		changes = true;
 	}
 	
@@ -130,16 +128,52 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setRowToTypeAndDraw = 
 			this.html5Wells[row][column].drawAll();
 		}
 	}
-	if(this.cfg.DEBUG_CLICK) { //debug output to analyse click registry correctness
-		console.log("after head row click");
-		//console_log_2D_arr(this.clickRegistry.currentWellStateArr);
-		console_log_2D_arr(0, this.clickRegistry.currentWellStateArr, "currentArr");
-		console_log_2D_arr(0, this.clickRegistry.undoWellStateArr, "undoArr");
-		console_log_2D_arr(0, this.clickRegistry.rowStates.rowTypeUndoArr, "headRowArr");
+	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
+		console.log("after row click: ");
+		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
+											, this.clickRegistry.currentWellPointerArr );
 	}
 	
 	
 }
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setColumnToTypeAndDraw = function( column, type ) {
+	var i = column;
+	if( i < 0 ) {
+		return;
+	}	
+	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
+		console.log("before column click: ");
+		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
+											, this.clickRegistry.currentWellPointerArr );
+	}
+	var newColCellState = this.clickRegistry.clickColHeadState(column);
+	
+	var changes = false;
+	if( newColCellState == this.cfg.HEAD_CELL_STATE.delete ) {
+		this.clickRegistry.setColumnCells(column, type);
+		changes = true;
+	}
+	else if( newColCellState == this.cfg.HEAD_CELL_STATE.undo ) {
+		this.clickRegistry.undoColumnCells(column, type);
+		changes = true;
+	}
+	
+	if(changes) { //draw the model for real only if something is different
+		for(var row = 0; row < this.rows; row++) {
+			this.html5Wells[row][column].currentType = this.clickRegistry.getCurrentCellType(row, column);
+			this.html5Wells[row][column].drawAll();
+		}
+	}
+	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
+		console.log("agter column click: ");
+		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
+											, this.clickRegistry.currentWellPointerArr );
+	}
+	
+	
+	
+}
+
 //this function clears the complet plate configuration and has a undo functionality
 //if clicked again on the undo button (but works only if clicked immediately again)
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.resetPlateLayoutForUndo = function() {
@@ -166,28 +200,23 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.resetPlateLayoutForUnd
 
 //this is the master drawing function...with storing undo info etc.
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellToTypeAndDraw = function( row, col, type ) {
-	if(this.cfg.DEBUG_CLICK) { //debug output to analyse click registry correctness
-		console.log("before single cell click");
-		//console_log_2D_arr(this.clickRegistry.currentWellStateArr);
-		console_log_2D_arr(0, this.clickRegistry.currentWellStateArr, "currentArr");
-		console_log_2D_arr(0, this.clickRegistry.undoWellStateArr, "undoArr");
-		console_log_2D_arr(0, this.clickRegistry.rowStates.rowTypeUndoArr, "headRowArr");
+	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
+		console.log("before single click: ");
+		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
+											, this.clickRegistry.currentWellPointerArr );
 	}
 	var currType = this.clickRegistry.getCurrentCellType(row, col);
 	var newType = this.clickRegistry.clickSingleCell(row, col, type);
-	//only draw the internal state (represented by the clickregistry) if something is different
+	//only draw the internal state (represented by the clickregistry) if something is different..just to reduce overhead
 	if(currType != newType) {
 		//set the cell with the new type for real
 		this.html5Wells[row][col].setCurrentType(newType);
 		this.html5Wells[row][col].drawAll();
 	}
-	if(this.cfg.DEBUG_CLICK) { //debug output to analyse click registry correctness
-		console.log("after single cell click");
-		//console_log_2D_arr(this.clickRegistry.currentWellStateArr);
-		console_log_2D_arr(0, this.clickRegistry.currentWellStateArr, "currentArr");
-		console_log_2D_arr(0, this.clickRegistry.undoWellStateArr, "undoArr");
-		console_log_2D_arr(0, this.clickRegistry.rowStates.rowTypeUndoArr, "headRowArr");
-		console.log("---");
+	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
+		console.log("after single click: ");
+		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
+											, this.clickRegistry.currentWellPointerArr );
 	}
 }
 
