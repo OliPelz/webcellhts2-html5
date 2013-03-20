@@ -4,7 +4,7 @@ loadPlateEditorCtxMenu = function(plateEdit) {
 	var plateEditor = plateEdit;
 	var cfg = de.dkfz.signaling.webcellhts.Config;
     $.contextMenu({
-        selector: '#plateEditor', 
+        selector: "#"+plateEditor.overlayId, 
         callback: function(key, options) {
         	if(key == "positive_well") {
             	cfg.CURRENT_SELECTED_CELL_TYPE = cfg.CELL_TYPE.positive;
@@ -22,12 +22,16 @@ loadPlateEditorCtxMenu = function(plateEdit) {
         //---------
             else if(key == "single_select") {
             	plateEditor.currDrawTool = cfg.DRAW_TOOL.POINT;
+            	//when changing the drawing tool you have to update the event listeners
+            	plateEditor._updateEventListeners();
             }
             else if(key == "line_tool") {
             	plateEditor.currDrawTool = cfg.DRAW_TOOL.LINE;
+            	plateEditor._updateEventListeners();
             }
             else if(key == "rectangle_tool") {
             	plateEditor.currDrawTool = cfg.DRAW_TOOL.RECTANGLE;
+            	plateEditor._updateEventListeners();
             }
         },
         items: {

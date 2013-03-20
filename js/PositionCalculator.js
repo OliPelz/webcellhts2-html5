@@ -84,18 +84,157 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getActualUpperLeftCell
 	return {x: headingPos.x + cfg.CELL_PADDING.x ,
 			y: headingPos.y + cfg.CELL_PADDING.y};
 }
+//this method normalizes canvas coordinates to cell coordinates (using the heading coordinates as border)
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.normalizeCoordinates = function(coordinate) {
+	//create normalized copys of points
+	var headingStart = this.getActualUpperLeftHeadingStart();
+	var coord_n  = {x:coordinate.x - headingStart.x, y: coordinate.y - headingStart.y };
+	return coord_n;
+}
+//this method un-normalizes cell coordinates back to canvas coordinates (using the heading coordinates as border)
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.unnormalizeCoordinates = function(coordinate) {
+	//create normalized copys of points
+	var headingStart = this.getActualUpperLeftHeadingStart();
+	var coord_n  = {x:coordinate.x + headingStart.x, y: coordinate.y + headingStart.y };
+	return coord_n;
+}
+
+
+//this method gets the x,y coordinates of marked cells when drawing a line
+//points are unnormalized
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getCoordinatesForLine = function(startCoord, endCoord) {
+	var coord_obj = this._getCellBordersForLine( startCoord, endCoord);
+	this._getYCoordAndCellIdxForXCoordArr(startCoord, endCoord, coord_obj);//result is an array of obj: {x_idx, x_coords, y_idx, y_coords, y_coords_org} all coords are normalized
+	return coord_obj;
+}
+
+//get all the grid x-coordinate borders for a line defined by start and endcoordinate
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype._getCellBordersForLine = function(startCoord, endCoord) {
+	if(startCoord.x == endCoord.x) {
+		return;
+	}
+	var cfg = this.cfg;
+	
+	//always go from left to right on x-axis, makes the algo much easier to implement
+	if(startCoord.x > endCoord.x) {
+		var tmp = startCoord; startCoord = endCoord; endCoord = tmp;
+	}
+		
+	var abs_cell_dim = (cfg.CELL_PADDING.x + this.dimension.width ); //absolute x-dimension of a cell
+	var n_startCoord = this.normalizeCoordinates(startCoord);
+	var n_endCoord = this.normalizeCoordinates(endCoord);
+	
+	var x_start_idx = this.getGridIndexForCoordinate(n_startCoord); //get the index of cell this line-start is in
+	var x_end_idx = this.getGridIndexForCoordinate(n_endCoord);
+	
+	var x_clk_start = n_startCoord.x; 
+	var x_clk_end = n_endCoord.x;
+	
+	var return_arr = new Array();
+	for(var i = x_start_idx.x_cell; i <= x_end_idx.x_cell; i++) {
+		if(i > this.columns  || i < 0) {  //if we are out of bounds
+			continue;
+		}
+		var cell_x_start = abs_cell_dim + (i - 1) * abs_cell_dim ; //x-startcoord of current cell
+		var cell_x_end = cell_x_start + this.dimension.width; //x-end coordinate of current cell
+		var tmp_arr = new Array();
+		if(cell_x_start >= x_clk_start && cell_x_start <= x_clk_end ) { //if the cell border is in the range of the drawn line
+			tmp_arr.push(cell_x_start);
+		}
+		if(cell_x_end >= x_clk_start && cell_x_end <= x_clk_end ) {
+			tmp_arr.push(cell_x_end);
+		}
+		return_arr.push({x_idx:i, x_coords: tmp_arr});
+		
+	}
+	return return_arr;
+}
+//this uses bresenheim...gets y-coords for array of x coordinates by key "arr_idx".  appends y_coords
+//this algo also calculates the y-index of cells
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype._getYCoordAndCellIdxForXCoordArr = function(startP_org, endP_org, return_arr) {
+	var startP = this.normalizeCoordinates(startP_org);
+	var endP = this.normalizeCoordinates(endP_org);
+	
+	//always go from left to right on x-axis, makes the algo much easier to implement
+	if(startP.x > endP.x) {
+		var tmp = startP; startP = endP; endP = tmp;
+	}
+	var dx = endP.x - startP.x; 
+	var dy = endP.y - startP.y;  //coordinate system is upway down
+	var m = dy / dx;
+	
+	var b = startP.y - m * startP.x;
+	
+	if(this.cfg.DEBUG_LINEDRAW) {
+		console.log("dx : "+dx+" dy: "+dy+" m: "+m+" b:"+b);
+	}
+	
+	for(var i = 0; i < return_arr.length; i++) {
+		var el = return_arr[i];
+		var y_coords_arr = new Array();
+		var y_idx_arr = new Array();
+		var y_coords_org_arr = new Array(); //the unnormalized "original" canvas coordinates
+		var x_coords_org_arr = new Array();
+		for(j = 0; j < el.x_coords.length; j++) {
+			var coord = el.x_coords[j];
+			var y = parseInt(Math.round(m * coord + b));
+			var pos = {x:el.x_coords[j], y: y};
+			var c_org = this.unnormalizeCoordinates(pos);
+			y_coords_arr.push(y);
+			y_coords_org_arr.push(c_org.y);
+			x_coords_org_arr.push(c_org.x);
+			//now calc the y idx
+			//make a fake pos to calculate only the y part of the idx
+			
+			var idx = this.getGridIndexForCoordinate(pos);
+			if(idx.y_cell < 0 || idx.y_cell > this.rows ) { //if we are out of bounds
+				continue;
+			}
+			
+			y_idx_arr.push(idx.y_cell);
+		}
+		//add all the useful information
+		el.y_coords = y_coords_arr; 
+		el.y_coords_org = y_coords_org_arr;
+		el.x_coords_org = x_coords_org_arr;
+		el.y_idx = y_idx_arr;
+		
+	}
+}
+//make a convenient array of coordinates for drawing
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.coordObjToCoordinates = function(coord_obj) {
+	var return_coords_n = new Array(); //contains normalized y coodrinates, is unique, contains normalized coordinates
+	var unique_dict = new Array(); //will force uniquness
+	for(var i = 0; i < coord_obj.length; i++) {
+		var el = coord_obj[i];
+		for(j = 0; j < el.y_idx.length; j++) {
+			if(el.x_idx < 1 || el.y_idx[j] < 0 ) {
+				continue;
+			}
+			var hsh_key = el.x_idx+"_"+el.y_idx[j];
+			if(unique_dict[hsh_key] != 1 ) {
+				unique_dict[hsh_key] = 1;
+				return_coords_n.push({column:el.x_idx - 1, row:el.y_idx[j] - 1 });
+				
+			}
+		}
+	}
+	return return_coords_n;
+}
+
 // this method is a very useful method for generating grid positions for coordinates {x,y} in a well
 // it returns the 'array' typed indices as {x,y} tupels and those index-zero based
 //e.g. the cell A1 would be returned as {1,1} (dont forget to count the cell "X")
+//this is for normalized coordinates (starting at 0)
 de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getGridIndexForCoordinate = function(curr_pos) {
 	var cfg = this.cfg;
 	var enum_type;
-	var headingStart = this.getActualUpperLeftHeadingStart();
-	var x_norm = curr_pos.x - headingStart.x;  //normalize the current position to the coordinates of the heading to zero
-	var y_norm = curr_pos.y - headingStart.y;
 
 	var x_number = -1;
 	var x_rest = -1;
+	
+	var x_norm = curr_pos.x;  //the normalization part one has to take care of before starting this sub
+	var y_norm = curr_pos.y;
 	if(x_norm >= 0 ) {  //we start our coordinate system system with zero based numbers
 	//calculate the index coordinates in a zero based 'array'
 		x_number = x_norm / (cfg.CELL_PADDING.x + this.dimension.width ); //get the index of the cell+padding
@@ -126,6 +265,7 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getGridIndexForCoordin
 		y_num_return = -1;
 	}
 	if(cfg.DEBUG_COORDS == true) { //debugging output ...only enabled if we have set the flag
+		var headingStart = this.getActualUpperLeftHeadingStart();
 		console.log("x_cell_norm: "+x_norm+" (head.x:"+headingStart.x
 		+") y_cell_norm: "+y_norm+" (head.y:"+headingStart.y+")");
   		console.log("x_cell_raw : "+x_number+" y_cell_raw: "+y_number);

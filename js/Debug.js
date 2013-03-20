@@ -86,6 +86,24 @@ function draw_dots_with_labels(x, y, ctx) {
 	ctx.restore();
 	
 }
+function draw_dots_with_labels_smaller(x, y, ctx) {
+	ctx.save();
+	try {
+		ctx.fillStyle = "red";
+		ctx.fillRect(x , y , 3, 3);
+	} catch(err) {}
+	try {
+		ctx.fillStyle = "black";
+  		ctx.font = "8px sans-serif";
+	} catch(err) {}
+	try {
+  		ctx.textBaseline = "top";
+  		ctx.fillText("( "+x+" , "+y+" )", x+8, y+5);
+	} catch(err) {}
+	ctx.restore();
+	
+}
+
 
 function draw_labels(ctx) {
 ctx.save();
@@ -151,4 +169,7 @@ function console_log_2D_arr(arr) {
 }
 function console_log_2D_arr(rowIdx, arr, desc) {
 	console.log(desc+":\t"+print_1D_arr(arr[rowIdx]));
+}
+function console_log_1D_arr(arr, desc) {
+	console.log(desc+":\t"+print_1D_arr(arr));
 }

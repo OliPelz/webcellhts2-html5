@@ -196,7 +196,12 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.resetPlateLayoutForUnd
 	}
 
 }
-
+//this is the master drawing function...with storing undo info etc.
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellsToTypeAndDraw = function(arr, type ) {
+	for(var i = 0; i < arr.length; i++) {
+		this.setCellToTypeAndDraw(arr[i].row , arr[i].column , type);
+	}
+}
 
 //this is the master drawing function...with storing undo info etc.
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellToTypeAndDraw = function( row, col, type ) {

@@ -1,3 +1,18 @@
 body {
      font: 62.5% Arial, Verdana, sans-serif;
 }
+#container { 
+	position: relative; 
+}
+#plateEditor {
+	z-index: 1;
+	position:absolute;
+	left:0px;
+	top:0px;
+}
+#animationOverlay {
+	z-index: 2;
+	position:absolute;
+	left:0px;
+	top:0px;
+}

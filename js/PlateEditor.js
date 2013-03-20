@@ -44,10 +44,11 @@ if(!de.dkfz.signaling.webcellhts)
 // ---------------------------------------------------------------------------------------------------------------------
 
 //Constructor
-de.dkfz.signaling.webcellhts.PlateEditor = function(containerId) {
+de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, overlayContainerId) {
 	    //init - construct important stuff
     	//constants
     	this.containerId = containerId;
+    	this.overlayId = overlayContainerId;
     	this.plateFormatId = "plateFormatSelect";
     	this.currWellId = "currWell";
     	this.cfg = de.dkfz.signaling.webcellhts.Config;
@@ -56,15 +57,21 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId) {
     	
     	//first check if our canvas element is available in the DOM
         if(! this.jsHelper.isElementInNode(this.containerId)) {
-        	alert("div id undefined in DOM: "+containerId);
-        	throw new Error("DivIdNotDefined");
+        	alert("canvas id undefined in DOM: "+containerId);
+        	throw new Error("CanvasIdNotDefined");
         }
         if(! this.jsHelper.isElementInNode(this.plateFormatId)) {
         	alert("plateformat dropdown chooser id undefined in DOM: "+plateFormatId);
-        	throw new Error("DivIdNotDefined");
+        	throw new Error("plateFormatChooserNotDefined");
+        }
+         if(! this.jsHelper.isElementInNode(this.overlayId)) {
+        	alert("canvas overlay id undefined in DOM: "+this.overlayId);
+        	throw new Error("OverlayCanvasIdNotDefined");
         }
         this.canvas = document.getElementById(containerId);
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d'); 
+        this.overlay_canvas = document.getElementById(overlayContainerId);
+        this.overlay_ctx = this.overlay_canvas.getContext('2d'); 
         //draw a border
         	this.jsHelper.strokeRectangle("black", 1
 									,  {width: this.canvas.width, height: this.canvas.height }
@@ -83,6 +90,13 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId) {
 			draw_grid(this.canvas);
 			draw_dots_with_labels(0, 0, this.ctx);
 			draw_dots_with_labels(50, 50, this.ctx);
+			for(var i = 0; i < this.plateConfig.html5Wells.length; i++) {
+				for(var j = 0; j < this.plateConfig.html5Wells[i].length; j++) {
+					var pos = this.plateConfig.html5Wells[i][j].drawPosition;
+					draw_dots_with_labels_smaller(pos.x, pos.y, this.ctx);
+			
+				}
+			}
 		}
 		       
 }
@@ -123,8 +137,8 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 	//define some enclosures to be accessed from within the method
 		var startPoint;
 		var endPoint;
-		var ctx = this.ctx;
-		var canvas = this.canvas;
+		//var ctx = this.ctx;
+		//var canvas = this.canvas;
 		var jsHelper = this.jsHelper;
 		
 		var mouse_downed = false;
@@ -133,33 +147,39 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		var cfg = this.cfg;
 		var currDrawTool = this.currDrawTool;
 		var rect = this.canvas.getBoundingClientRect();
+		var canvas = this.overlay_canvas;
+		var ctx = this.overlay_ctx;
 		var my_start_coords;
 		
 		var i = 0;
 		
 		//this method is for debugging...disable it later
 		if(cfg.DEBUG_COORDS == true) {
-			$('#plateEditor').mousemove(function(event) {
+			$('#'+this.overlayId).mousemove(function(event) {
 	 				var my_start_coordinates = jsHelper.getCursorPosition(canvas, event);
 	 				var headingStart = posCalculator.getActualUpperLeftHeadingStart();
-  					
-  					//console.log("x_cell: "+cellIndex.x_cell+" y_cell: "+cellIndex.y_cell);
   					if(i++ % 100)  {
-  						var cellIndex = posCalculator.getGridIndexForCoordinate({x:my_start_coordinates.x,y:my_start_coordinates.y});				    	
+  						var n_coord = posCalculator.normalizeCoordinates(my_start_coordinates);
+  						var cellIndex = posCalculator.getGridIndexForCoordinate({x:n_coord.x,y:n_coord.y});				    	
   				    	i = 0;
   					}
   			});
 		}
 		//register the event handler for single cell click tool
 		if( currDrawTool == cfg.DRAW_TOOL.POINT ) {
+		//remove some eventhandlers from the pool of event listeners since DRAW_TOOL.LINE could register them before which would interfere here
+			$('#'+this.overlayId).unbind('mousedown');
+			$('#'+this.overlayId).unbind('mousemove');
+			$('#'+this.overlayId).unbind('mouseup');
 			//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
   					//the rules for single click mode:
   					// 1. click in the X: delete the current plate
   					// 2. click on a header: mark/unmark the complete row/column
   					// 3. click on a cell: mark/unmark that cell
-			$('#plateEditor').click(function(event) {
+			$('#'+this.overlayId).click(function(event) {
 	 			var coord = jsHelper.getCursorPosition(canvas, event);	
-  				var cellIndex = posCalculator.getGridIndexForCoordinate({x:coord.x,y:coord.y});					
+	 			var n_coord = posCalculator.normalizeCoordinates(coord);
+  				var cellIndex = posCalculator.getGridIndexForCoordinate({x:n_coord.x,y:n_coord.y});					
   				//first check if we hit the X...delete the whole layout
   				if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
   						plateConfig.resetPlateLayoutForUndo();
@@ -181,40 +201,49 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   			});
 		}
 		else if( currDrawTool == cfg.DRAW_TOOL.LINE ) {
-			$('#plateEditor').mousedown(function(event) {
+			//remove the click method from the pool of event listeners since DRAW_TOOL.SINGLE_CLICK could register the click method before which would interfere here
+			$('#'+this.overlayId).unbind('click');
+			$('#'+this.overlayId).mousedown(function(event) {
 		 			my_start_coords = jsHelper.getCursorPosition(canvas, event);
   					//this is doing the trick of drawing a line : add evetlistener of mouse
   					//movevent within our event listener so it will only be called while we already have clicked 'down'
-  					mouse_downed = true;		
+  					mouse_downed = true;	
+  						
   			});
-  			$('#plateEditor').mousemove(function(event) {
+  			$('#'+this.overlayId).mousemove(function(event) {
   					if(mouse_downed) {
 		 				my_end_coords = jsHelper.getCursorPosition(canvas, event);
-		 				de.dkfz.signaling.b110.JsHelper.prototype.drawLine(my_start_coords
-		 																   ,my_end_coords
-		 																   ,1
-		 																   ,"black"
-		 																   ,ctx);
+		 				//empty overlay every move
+		 				ctx.clearRect(0, 0, canvas.width, canvas.height);
+		 				jsHelper.drawLine(my_start_coords
+		 											,my_end_coords
+		 											,1
+		 											,"black"
+		 											,ctx);
+		 				
   					}
   						
   			});
-  			$('#plateEditor').mouseup(function(event) {
+  			$('#'+this.overlayId).mouseup(function(event) {
   					if(!mouse_downed) {
   						return;
   					}
   					mouse_downed = false;
-  					var current_endpoint_coords = jsHelper.getCursorPosition(canvas, event);
-  					jsHelper.drawLine(my_start_coords, current_endpoint_coords, 1, "green", ctx);  					
-  					if(coordinates.length > 1 ) {
-  						//do some fancy things
+  					var current_endpoint_coords = jsHelper.getCursorPosition(canvas, event); 					
+  					//empty overlay every move
+  					ctx.clearRect(0, 0, canvas.width, canvas.height);
+  				
+  					var coord_obj = posCalculator.getCoordinatesForLine(my_start_coords, current_endpoint_coords);
+  					if(cfg.DEBUG_LINEDRAW) {
+  						for(var i = 0; i < coord_obj.length; i ++) {
+  							for(var j = 0; j < coord_obj[i].y_coords_org.length; j++) {
+  								draw_dots_with_labels_smaller(coord_obj[i].x_coords_org[j], coord_obj[i].y_coords_org[j],ctx);
+  							}
+  						}
   					}
-  					
-  				//	var cellsOfInterest = jsHelper.getCellsForCoordinates(coordinates);
-  				//console.log(point);
-  				//var yPointCoordArr = this.jsHelper.getCellIndexOfInterestForLine(pointStart, pointStop);
-  				//iterate through yPointCoordArr
-  				//	 cellIndexId = getCellIDForCoordinate(x, yPointCoord)
-  				//     PlateConfiguration.changeCell(cellIndexId, chosenColor);
+  					var idx_coords = posCalculator.coordObjToCoordinates(coord_obj); 
+  					plateConfig.setCellsToTypeAndDraw(idx_coords, cfg.CURRENT_SELECTED_CELL_TYPE); 
+
   	    	});
   	    }
   	    

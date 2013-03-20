@@ -55,6 +55,9 @@ de.dkfz.signaling.b110.JsHelper.prototype.isElementInNode = function(element){
 	}
 	return false;
 }
+de.dkfz.signaling.b110.JsHelper.prototype.isUndefined = function(element){
+	return this.isElementInNode(element);//same applies here
+}
 //create empty 3d array
 de.dkfz.signaling.b110.JsHelper.prototype.create3DArray = function(rows, columns){
 	var array3D = new Array(rows);
@@ -143,7 +146,6 @@ de.dkfz.signaling.b110.JsHelper.prototype.getCoordinatesOfInterestForLine
 	x2 = endPoint.x;
 	y1 = startPoint.y;
 	y2 = endPoint.y;
-	var dimension = 1;
 	//this would be a click without drawing an actual line
 	if (x1 == x2 && y1 == y2) { 
 		returnList.push(startPoint);
@@ -228,3 +230,36 @@ de.dkfz.signaling.b110.JsHelper.prototype.strokeRectangle = function(lineColor, 
 					plateDimension.width, plateDimension.height);
 	ctx.restore();
 }
+de.dkfz.signaling.b110.JsHelper.prototype.clearCanvas = function(canvas) {
+	var context = canvas.getContext("2d");
+	context.clearRect(0, 0, canvas.width, canvas.height);
+}
+//this appends a brand new canvas to the nodeToAppend element
+//the oldCanvas is the template to copy its size etc.
+/*de.dkfz.signaling.b110.JsHelper.prototype.overlayNewCanvas = function(oldCanvas) {
+	  // Add the temporary canvas.
+    var newCanvas = document.createElement('canvas');
+    if (!newCanvas) {
+      alert('Error: I cannot create a new canvas element in DOM ');
+      throw new Error("cannotCreateCanvasObj");
+    }
+
+    newCanvas.id     = 'overlayCanvas';
+    newCanvas.width  = oldCanvas.width;
+    newCanvas.height = oldCanvas.height;
+    newCanvas.style.position = "absolute";
+    //container.appendChild(newCanvas);
+	this.overlay_update(oldCanvas, newCanvas);
+ 	return newCanvas;
+}
+// This function draws the #imageTemp canvas on top of #imageView (overlay), after which 
+// #overlayCanvas is cleared. This function is called each time when the user 
+// completes a drawing operation.
+de.dkfz.signaling.b110.JsHelper.prototype.overlay_update = function(oldCanvas, newCanvas) {
+  		var oldContext = oldCanvas.getContext("2d");
+  		var newContext = newCanvas.getContext("2d");
+		oldContext.drawImage(newCanvas, 0, 0);
+		
+		newContext.clearRect(0, 0, newCanvas.width, newCanvas.height);
+		console.log("clear the complete thing");
+  }*/
