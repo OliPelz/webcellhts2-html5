@@ -107,6 +107,131 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getCoordinatesForLine 
 	this._getYCoordAndCellIdxForXCoordArr(startCoord, endCoord, coord_obj);//result is an array of obj: {x_idx, x_coords, y_idx, y_coords, y_coords_org} all coords are normalized
 	return coord_obj;
 }
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne = function(startCoord, endCoord) {
+	if(startCoord.x == endCoord.x && startCoord.y == endCoord.y) {
+		return; //dont draw anything
+	}
+	var cfg = this.cfg;
+	var abs_cell_dim_x = (cfg.CELL_PADDING.x + this.dimension.width ); //absolute x-dimension of a cell
+	var abs_cell_dim_y = (cfg.CELL_PADDING.x + this.dimension.height ); //absolute x-dimension of a cell
+	//always go from left to right on x-axis, makes the algo much easier to implement
+	if(startCoord.x > endCoord.x) {
+		var tmp = startCoord; startCoord = endCoord; endCoord = tmp;
+	}	
+	var startCoord_n = this.normalizeCoordinates(startCoord);
+	var endCoord_n = this.normalizeCoordinates(endCoord);
+	
+	var x1 = startCoord_n.x;
+	var x2 = endCoord_n.x;
+	var y1 = startCoord_n.y;
+	var y2 = endCoord_n.y;
+	
+	var dx = x2 - x1; 
+	var sx = (dx < 0) ? -abs_cell_dim_x : abs_cell_dim_x;  //the 'stepwise' in x direction is the cell length
+	var dy = y2 - y1; 
+	var sy = (dy < 0) ? -abs_cell_dim_y : abs_cell_dim_y;
+	//for all crossed horizontal points
+	var m = dy / dx; 
+	var b = y1 - m * x1;
+	var coord_arr = {};
+	var cell_idx_arr = {};
+	do {
+		var x1_cell_idx = parseInt(x1 / abs_cell_dim_x);
+		var x1_rest = x1 % abs_cell_dim_x;
+		if(x1_rest <= this.dimension.width) { //if we are not in between two cells
+			x1 = abs_cell_dim_x + (x1_cell_idx - 1) * abs_cell_dim_x ; //x-startcoord (left border) of current cell
+			var cell_x_end = x1 + this.dimension.width; //x-end coordinate (right border)of current cell
+			y1 = Math.round(m*x1 + b);
+			y2 = Math.round(m*cell_x_end + b);
+			
+			var y1_idx = parseInt(y1 / abs_cell_dim_y);
+			var y1_rest = y1 % abs_cell_dim_y;
+			
+			var y2_idx = parseInt(y2 / abs_cell_dim_y);
+			var y2_rest = y2 % abs_cell_dim_y;
+			
+			if(x1 >= startCoord_n.x && x1 <= endCoord_n.x) {  //take this point only if within the borders of the drawn line
+				coord_arr[""+x1+"_"+y1] = 1;  //make uniq
+				if(y1_rest <= this.dimension.height) {//if we are in between cells border
+					cell_idx_arr[""+x1_cell_idx+"_"+y1_idx] = 1;
+				}
+			}
+			if(cell_x_end >= startCoord_n.x && cell_x_end <= endCoord_n.x) {
+				coord_arr[""+cell_x_end+"_"+y2] = 1;
+				if(y2_rest <= this.dimension.height) {
+					cell_idx_arr[""+x1_cell_idx+"_"+y2_idx] = 1; //make uniq
+				}
+			}
+			
+		}
+		x1 += sx;
+	}while(x1 <= x2)
+	
+	//make real return values
+	var retr_coords = new Array();
+	var idx_arr     = new Array();
+	
+	for(var coord in coord_arr) {
+		var tmp_arr = coord.split("_");
+		retr_coords.push(this.unnormalizeCoordinates({x:parseInt(tmp_arr[0]), y:parseInt(tmp_arr[1])}));
+	}
+	for(var idx in cell_idx_arr) {
+		var tmp_arr = idx.split("_");
+		idx_arr.push({column:parseInt(tmp_arr[0]) - 1, row:parseInt(tmp_arr[1]) - 1 });
+	}
+	
+	return {coord_arr:retr_coords, cell_idx_arr:idx_arr};
+}
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne2 = function(startCoord, endCoord) {
+	if(startCoord.x == endCoord.x && startCoord.y == endCoord.y) {
+		return; //dont draw anything
+	}
+	var cfg = this.cfg;
+	var abs_cell_dim = (cfg.CELL_PADDING.y + this.dimension.height ); 
+
+	if(startCoord.y > endCoord.y) {
+		var tmp = startCoord; startCoord = endCoord; endCoord = tmp;
+	}	
+	var startCoord_n = this.normalizeCoordinates(startCoord);
+	var endCoord_n = this.normalizeCoordinates(endCoord);
+	
+	var x1 = startCoord_n.x;
+	var x2 = endCoord_n.x;
+	var y1 = startCoord_n.y;
+	var y2 = endCoord_n.y;
+	
+	var dx = x2 - x1; 
+	var sx = (dx < 0) ? -abs_cell_dim : abs_cell_dim;  //the 'stepwise' in x direction is the cell length
+	var dy = y2 - y1; 
+	var sy = (dy < 0) ? -abs_cell_dim : abs_cell_dim;
+	var return_obj = new Array();
+	//this is the bresenheimer algorithm:
+	//if (Math.abs(dy) < Math.abs(dx)) {  //for all crossed horizontal points
+		var m = dx / dy; 
+		var b = x1 - m * y1;
+			
+		do {
+			var y1_cell_idx = parseInt(y1 / abs_cell_dim);
+			var y1_rest = y1 % abs_cell_dim;
+			if(y1_rest > this.dimension.height) { //if we are in between two cells
+				y1_cell_idx++;
+			}
+			y1 = abs_cell_dim + (y1_cell_idx - 1) * abs_cell_dim ; //x-startcoord (left border) of current cell
+			var cell_y_end = y1 + this.dimension.width; //x-end coordinate (right border)of current cell
+			x1 = Math.round(m*y1 + b);
+			x2 = Math.round(m*cell_y_end + b);
+			if(y1 >= startCoord_n.y && y1 <= endCoord_n.y) {  //take this point only if within the borders of the drawn line
+				return_obj.push(this.unnormalizeCoordinates({y:y1,x:x1}));
+			}
+			if(cell_y_end >= startCoord_n.y && cell_y_end <= endCoord_n.y) {
+				return_obj.push(this.unnormalizeCoordinates({y:cell_y_end,x:x2}));
+			}
+			
+			y1 += sy;
+		}while(y1 <= y2)
+	
+	return return_obj;
+}
 
 //get all the grid x-coordinate borders for a line defined by start and endcoordinate
 de.dkfz.signaling.webcellhts.PositionCalculator.prototype._getCellBordersForLine = function(startCoord, endCoord) {

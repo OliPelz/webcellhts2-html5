@@ -233,17 +233,23 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   					//empty overlay every move
   					ctx.clearRect(0, 0, canvas.width, canvas.height);
   				
-  					var coord_obj = posCalculator.getCoordinatesForLine(my_start_coords, current_endpoint_coords);
+  					//var coord_obj = posCalculator.getCoordinatesForLine(my_start_coords, current_endpoint_coords);
+  					var coord_obj = posCalculator.allInOne(my_start_coords, current_endpoint_coords);
+  					
+  					plateConfig.setCellsToTypeAndDraw(coord_obj.cell_idx_arr, cfg.CURRENT_SELECTED_CELL_TYPE);
+  					
   					if(cfg.DEBUG_LINEDRAW) {
-  						for(var i = 0; i < coord_obj.length; i ++) {
-  							for(var j = 0; j < coord_obj[i].y_coords_org.length; j++) {
-  								draw_dots_with_labels_smaller(coord_obj[i].x_coords_org[j], coord_obj[i].y_coords_org[j],ctx);
-  							}
+  						for(var i = 0; i < coord_obj.coord_arr.length	; i ++) {
+  							var coord = coord_obj.coord_arr[i];
+  							draw_dots_with_labels_smaller(coord.x, coord.y, ctx);
   						}
   					}
-  					var idx_coords = posCalculator.coordObjToCoordinates(coord_obj); 
-  					plateConfig.setCellsToTypeAndDraw(idx_coords, cfg.CURRENT_SELECTED_CELL_TYPE); 
-
+  					/*coord_obj = posCalculator.allInOne2(my_start_coords, current_endpoint_coords);
+  					if(cfg.DEBUG_LINEDRAW) {
+  						for(var i = 0; i < coord_obj.length; i ++) {
+  							draw_dots_with_labels_smaller(coord_obj[i].x, coord_obj[i].y,ctx);
+  						}
+  					}*/
   	    	});
   	    }
   	    
