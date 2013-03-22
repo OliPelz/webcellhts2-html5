@@ -107,10 +107,26 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.getCoordinatesForLine 
 	this._getYCoordAndCellIdxForXCoordArr(startCoord, endCoord, coord_obj);//result is an array of obj: {x_idx, x_coords, y_idx, y_coords, y_coords_org} all coords are normalized
 	return coord_obj;
 }
+//including the headign cells
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.isCoordinateInPlate = function(coord) {
+	var startCoord = this.normalizeCoordinates(coord);
+	var dim = this.getPlateDimension();
+	if(startCoord.x < 0 || startCoord.x > dim.width) {
+		return false;
+	}
+	if(startCoord.y < 0 || startCoord.y > dim.heigth) {
+		return false;
+	}
+	return true;
+}
 de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne = function(startCoord, endCoord) {
 	if(startCoord.x == endCoord.x && startCoord.y == endCoord.y) {
 		return; //dont draw anything
 	}
+	if(! this.isCoordinateInPlate(startCoord) || !this.isCoordinateInPlate(endCoord)) {
+		return;
+	}
+	
 	var cfg = this.cfg;
 	var abs_cell_dim_x = (cfg.CELL_PADDING.x + this.dimension.width ); //absolute x-dimension of a cell
 	var abs_cell_dim_y = (cfg.CELL_PADDING.x + this.dimension.height ); //absolute x-dimension of a cell

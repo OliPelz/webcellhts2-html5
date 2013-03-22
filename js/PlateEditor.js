@@ -235,13 +235,14 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   				
   					//var coord_obj = posCalculator.getCoordinatesForLine(my_start_coords, current_endpoint_coords);
   					var coord_obj = posCalculator.allInOne(my_start_coords, current_endpoint_coords);
+  					if(coord_obj != null) {
+  						plateConfig.setCellsToTypeAndDraw(coord_obj.cell_idx_arr, cfg.CURRENT_SELECTED_CELL_TYPE);
   					
-  					plateConfig.setCellsToTypeAndDraw(coord_obj.cell_idx_arr, cfg.CURRENT_SELECTED_CELL_TYPE);
-  					
-  					if(cfg.DEBUG_LINEDRAW) {
-  						for(var i = 0; i < coord_obj.coord_arr.length	; i ++) {
-  							var coord = coord_obj.coord_arr[i];
-  							draw_dots_with_labels_smaller(coord.x, coord.y, ctx);
+  						if(cfg.DEBUG_LINEDRAW) {
+  							for(var i = 0; i < coord_obj.coord_arr.length	; i ++) {
+  								var coord = coord_obj.coord_arr[i];
+  								draw_dots_with_labels_smaller(coord.x, coord.y, ctx);
+  							}
   						}
   					}
   					/*coord_obj = posCalculator.allInOne2(my_start_coords, current_endpoint_coords);
