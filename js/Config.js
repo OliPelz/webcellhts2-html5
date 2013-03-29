@@ -33,7 +33,7 @@ de.dkfz.signaling.webcellhts.Config = {
 	DRAW_TOOL : { POINT:0, LINE:1, RECTANGLE:2 },  //select the current drawing tool: draw points, draw rectangles etc
 	DEBUG_COORDS: false,  //debugging flag for coordinates grid and mouse movement (open console to see a log)
 	DEBUG_CLICK: false, //debugging flag to test the Model View Controller clicks
-	DEBUG_LINEDRAW: true
+	DEBUG_LINEDRAW: false
 }
 getColorForWellType = function(wellType) {
 	return de.dkfz.signaling.webcellhts.Config.CELL_FILLCOLOR[wellType];

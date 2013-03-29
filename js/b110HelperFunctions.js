@@ -195,6 +195,21 @@ de.dkfz.signaling.b110.JsHelper.prototype.drawLine = function(startPoint
     		ctx.closePath();
     		ctx.restore();
 }
+de.dkfz.signaling.b110.JsHelper.prototype.drawRect = function(startPoint
+   												, stopPoint
+   												, lineThickness 
+   												, lineColor
+   												, ctx
+   												) {
+   			
+    		ctx.save();
+			ctx.strokeStyle = lineColor;
+			ctx.lineWidth = lineThickness;
+			//draw the border around the plate (this must not be the canvas border)
+			ctx.strokeRect(startPoint.x, startPoint.y, 
+			stopPoint.x - startPoint.x, stopPoint.y - startPoint.y);
+		    ctx.restore();
+}
 //this neglects anti aliasing for 1px lines
 de.dkfz.signaling.b110.JsHelper.prototype.drawThinHorizontalLine = function(c, x1, x2, y) {
 		c.lineWidth = 1;
@@ -234,6 +249,32 @@ de.dkfz.signaling.b110.JsHelper.prototype.clearCanvas = function(canvas) {
 	var context = canvas.getContext("2d");
 	context.clearRect(0, 0, canvas.width, canvas.height);
 }
+
+//array of x,y coordinates to unique coordinates
+de.dkfz.signaling.b110.JsHelper.prototype.coord2Uniq = function(coord_arr) {
+	var uniqA = {};
+	//unique it
+	for(var i = 0; i < coord_arr.length; i++) { 
+		var tmp_el = coord_arr[i];
+		uniqA[""+tmp_el.row+"_"+tmp_el.column] = 1;
+	}
+	//expand it again
+	var return_arr = new Array();
+	for(var uniq in uniqA) {
+		var tmp_arr = uniq.split("_");
+		return_arr.push({row:parseInt(tmp_arr[0]), column:parseInt(tmp_arr[1])});
+	}
+	return return_arr
+}
+//unbind all mouse movement event handlers for a html element 
+de.dkfz.signaling.b110.JsHelper.prototype.unbindAllMouseEvents = function(id) {
+	$('#'+id).unbind('click');
+  	$('#'+id).unbind('mousedown');
+ 	$('#'+id).unbind('mousemove');
+	$('#'+id).unbind('mouseup');
+}
+
+
 //this appends a brand new canvas to the nodeToAppend element
 //the oldCanvas is the template to copy its size etc.
 /*de.dkfz.signaling.b110.JsHelper.prototype.overlayNewCanvas = function(oldCanvas) {

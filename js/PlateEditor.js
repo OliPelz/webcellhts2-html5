@@ -168,18 +168,19 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		//register the event handler for single cell click tool
 		if( currDrawTool == cfg.DRAW_TOOL.POINT ) {
 		//remove some eventhandlers from the pool of event listeners since DRAW_TOOL.LINE could register them before which would interfere here
-			$('#'+this.overlayId).unbind('mousedown');
-			$('#'+this.overlayId).unbind('mousemove');
-			$('#'+this.overlayId).unbind('mouseup');
-			//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
+			jsHelper.unbindAllMouseEvents(this.overlayId);
+			
+			$('#'+this.overlayId).click(function(event) {
+	 			var coord = jsHelper.getCursorPosition(canvas, event);	
+	 			var n_coord = posCalculator.normalizeCoordinates(coord);
+  				var cellIndex = posCalculator.getGridIndexForCoordinate({x:n_coord.x,y:n_coord.y});	
+  				
+  				//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
   					//the rules for single click mode:
   					// 1. click in the X: delete the current plate
   					// 2. click on a header: mark/unmark the complete row/column
   					// 3. click on a cell: mark/unmark that cell
-			$('#'+this.overlayId).click(function(event) {
-	 			var coord = jsHelper.getCursorPosition(canvas, event);	
-	 			var n_coord = posCalculator.normalizeCoordinates(coord);
-  				var cellIndex = posCalculator.getGridIndexForCoordinate({x:n_coord.x,y:n_coord.y});					
+  								
   				//first check if we hit the X...delete the whole layout
   				if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
   						plateConfig.resetPlateLayoutForUndo();
@@ -202,7 +203,7 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
 		}
 		else if( currDrawTool == cfg.DRAW_TOOL.LINE ) {
 			//remove the click method from the pool of event listeners since DRAW_TOOL.SINGLE_CLICK could register the click method before which would interfere here
-			$('#'+this.overlayId).unbind('click');
+			jsHelper.unbindAllMouseEvents(this.overlayId);
 			$('#'+this.overlayId).mousedown(function(event) {
 		 			my_start_coords = jsHelper.getCursorPosition(canvas, event);
   					//this is doing the trick of drawing a line : add evetlistener of mouse
@@ -234,9 +235,10 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   					ctx.clearRect(0, 0, canvas.width, canvas.height);
   				
   					//var coord_obj = posCalculator.getCoordinatesForLine(my_start_coords, current_endpoint_coords);
-  					var coord_obj = posCalculator.allInOne(my_start_coords, current_endpoint_coords);
-  					if(coord_obj != null) {
-  						plateConfig.setCellsToTypeAndDraw(coord_obj.cell_idx_arr, cfg.CURRENT_SELECTED_CELL_TYPE);
+  					var coord_obj = posCalculator.line2Cells(my_start_coords, current_endpoint_coords);
+  					var cells_idx = jsHelper.coord2Uniq(coord_obj.cell_idx_arr);
+  					if(cells_idx != null && cells_idx.length > 0) {
+  						plateConfig.setCellsToTypeAndDraw(cells_idx, cfg.CURRENT_SELECTED_CELL_TYPE);
   					
   						if(cfg.DEBUG_LINEDRAW) {
   							for(var i = 0; i < coord_obj.coord_arr.length	; i ++) {
@@ -245,13 +247,55 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   							}
   						}
   					}
-  					/*coord_obj = posCalculator.allInOne2(my_start_coords, current_endpoint_coords);
-  					if(cfg.DEBUG_LINEDRAW) {
-  						for(var i = 0; i < coord_obj.length; i ++) {
-  							draw_dots_with_labels_smaller(coord_obj[i].x, coord_obj[i].y,ctx);
+  					else { //we may not pass over the border of two cells..try to get a single cell..this is like single-cell clicking
+  						var point = posCalculator.singleCellFromLine(my_start_coords);
+  						if(point.x != -1 || point.y != -1) {
+  							plateConfig.setCellToTypeAndDraw(point.y, point.x, cfg.CURRENT_SELECTED_CELL_TYPE);
   						}
-  					}*/
+  					}
+  					
+  					
   	    	});
+  	    }
+  	    else if( currDrawTool == cfg.DRAW_TOOL.RECTANGLE ) {
+  	    	//undo all former registered mouse movement functions
+  	    	jsHelper.unbindAllMouseEvents(this.overlayId);
+  	    	
+  	    	$('#'+this.overlayId).mousedown(function(event) {
+		 			my_start_coords = jsHelper.getCursorPosition(canvas, event);
+  					mouse_downed = true;	
+  						
+  			});
+  			$('#'+this.overlayId).mousemove(function(event) {
+  					if(mouse_downed) {
+		 				my_end_coords = jsHelper.getCursorPosition(canvas, event);
+		 				ctx.clearRect(0, 0, canvas.width, canvas.height);
+		 				jsHelper.drawRect(my_start_coords
+		 											,my_end_coords
+		 											,1
+		 											,"black"
+		 											,ctx);
+		 				
+  					}
+  						
+  			});
+  			$('#'+this.overlayId).mouseup(function(event) {
+  					if(!mouse_downed) {
+  						return;
+  					}
+  					mouse_downed = false;
+  					var current_endpoint_coords = jsHelper.getCursorPosition(canvas, event); 					
+  					//empty overlay every move
+  					ctx.clearRect(0, 0, canvas.width, canvas.height);
+  					var cells_idx = posCalculator.rect2Cells(my_start_coords, current_endpoint_coords);
+  					if(cells_idx != null && cells_idx.length > 0) {
+  						plateConfig.setCellsToTypeAndDraw(cells_idx, cfg.CURRENT_SELECTED_CELL_TYPE);
+  					}
+  						
+  					
+  	    	});
+  	    	
+  	    	
   	    }
   	    
 	

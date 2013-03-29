@@ -6,7 +6,7 @@
 **    modify it under the terms of the GNU Lesser General Public
 **    License as published by the Free Software Foundation; either
 **    version 2.1 of the License, or (at your option) any later version.
-**
+** 
 **    This library is distributed in the hope that it will be useful,
 **    but WITHOUT ANY WARRANTY; without even the implied warranty of
 **    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
@@ -120,24 +120,71 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.isCoordinateInPlate = 
 	}
 	return true;
 }
-de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne = function(startCoord, endCoord) {
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.singleCellFromLine = function(startCoord) {
+
+	if(! this.isCoordinateInPlate(startCoord) ) {
+		return {row:-1,cell:-1};
+	}
+	var norm_coords = this.normalizeCoordinates(startCoord);
+	var index_coords = this.getGridIndexForCoordinate(norm_coords);
+	return { x:index_coords.x_cell - 1 , y:index_coords.y_cell - 1 };
+}
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.rect2Cells = function(startCoord, endCoord) {
 	if(startCoord.x == endCoord.x && startCoord.y == endCoord.y) {
-		return; //dont draw anything
+		return new Array();//dont draw anything
+	}
+	var cfg = this.cfg;
+	var abs_cell_dim_x = (cfg.CELL_PADDING.x + this.dimension.width ); //absolute x-dimension of a cell
+	var abs_cell_dim_y = (cfg.CELL_PADDING.x + this.dimension.height ); //absolute x-dimension of a cell
+	
+	var startCoord_n = this.normalizeCoordinates(startCoord);
+	var endCoord_n = this.normalizeCoordinates(endCoord);
+	
+	var x1_idx = parseInt(startCoord_n.x / abs_cell_dim_x);
+	var x2_idx = parseInt(endCoord_n.x / abs_cell_dim_x);
+	var y1_idx = parseInt(startCoord_n.y / abs_cell_dim_y);
+	var y2_idx = parseInt(endCoord_n.y / abs_cell_dim_y);
+	
+	var returnArr = new Array();
+	for(var i = x1_idx; i <= x2_idx; i++ ) {
+		 for(var j = y1_idx; j <= y2_idx; j++ ) {
+		 	returnArr.push({column:i - 1, row:j - 1 });
+		 }
+	}
+	return returnArr;
+}
+
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.line2Cells = function(startCoord, endCoord) {
+	var coord_obj = this.line2HorizCells(startCoord, endCoord);
+	var temp_objs = this.line2VerticalCells(startCoord, endCoord);
+	for(var i = 0; i < temp_objs.cell_idx_arr.length; i++) {
+		coord_obj.cell_idx_arr.push(temp_objs.cell_idx_arr[i]);  //append all , merge our two objs
+	}
+	for(var i = 0; i < temp_objs.coord_arr.length; i++) {
+		coord_obj.coord_arr.push(temp_objs.coord_arr[i]);  //append all , merge our two objs
+	}
+	return coord_obj;
+}
+
+
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.line2HorizCells = function(startCoord, endCoord) {
+	if(startCoord.x == endCoord.x && startCoord.y == endCoord.y) {
+		return {coord_arr:new Array(), cell_idx_arr:new Array()};//dont draw anything
 	}
 	if(! this.isCoordinateInPlate(startCoord) || !this.isCoordinateInPlate(endCoord)) {
-		return;
+		return {coord_arr:new Array(), cell_idx_arr:new Array()};
 	}
 	
 	var cfg = this.cfg;
 	var abs_cell_dim_x = (cfg.CELL_PADDING.x + this.dimension.width ); //absolute x-dimension of a cell
 	var abs_cell_dim_y = (cfg.CELL_PADDING.x + this.dimension.height ); //absolute x-dimension of a cell
-	//always go from left to right on x-axis, makes the algo much easier to implement
-	if(startCoord.x > endCoord.x) {
-		var tmp = startCoord; startCoord = endCoord; endCoord = tmp;
-	}	
+		
 	var startCoord_n = this.normalizeCoordinates(startCoord);
 	var endCoord_n = this.normalizeCoordinates(endCoord);
-	
+	//always go from left to right on x-axis, makes the algo much easier to implement
+	if(startCoord_n.x > endCoord_n.x) {
+		var tmp = startCoord_n; startCoord_n = endCoord_n; endCoord_n = tmp;
+	}
 	var x1 = startCoord_n.x;
 	var x2 = endCoord_n.x;
 	var y1 = startCoord_n.y;
@@ -171,7 +218,7 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne = function(st
 				coord_arr[""+x1+"_"+y1] = 1;  //make uniq: coordinates are mainly for debugging
 				if(y1_rest <= this.dimension.height //if we are in between cells border
 					&& x1_cell_idx <= this.columns  // and if our index is in between possible cell index
-					&& y1_idx < this.rows) {  
+					&& y1_idx <= this.rows) {  
 						cell_idx_arr[""+x1_cell_idx+"_"+y1_idx] = 1;
 				}
 			}
@@ -179,7 +226,7 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne = function(st
 				coord_arr[""+cell_x_end+"_"+y2] = 1;
 				if(y2_rest <= this.dimension.height
 					&& x1_cell_idx <= this.columns  
-					&& y2_idx < this.rows) {  
+					&& y2_idx <= this.rows) {  
 					cell_idx_arr[""+x1_cell_idx+"_"+y2_idx] = 1; //make uniq
 				}
 			}
@@ -198,29 +245,29 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne = function(st
 	}
 	for(var idx in cell_idx_arr) {
 		var tmp_arr = idx.split("_");
-		idx_arr.push({column:parseInt(tmp_arr[0]) - 1, row:parseInt(tmp_arr[1]) - 1 });
+		idx_arr.push({column:parseInt(tmp_arr[0]) - 1, row:parseInt(tmp_arr[1]) - 1 }); //minus one is important because we have 0 based values here
 	}
 	
 	return {coord_arr:retr_coords, cell_idx_arr:idx_arr};
 }
-de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne2 = function(startCoord, endCoord) {
+de.dkfz.signaling.webcellhts.PositionCalculator.prototype.line2VerticalCells = function(startCoord, endCoord) {
 	if(startCoord.x == endCoord.x && startCoord.y == endCoord.y) {
-		return; //dont draw anything
+		return {coord_arr:new Array(), cell_idx_arr:new Array()};//dont draw anything
 	}
 	if(! this.isCoordinateInPlate(startCoord) || !this.isCoordinateInPlate(endCoord)) {
-		return;
+		return {coord_arr:new Array(), cell_idx_arr:new Array()};
 	}
 	
 	var cfg = this.cfg;
 	var abs_cell_dim_x = (cfg.CELL_PADDING.x + this.dimension.width ); //absolute x-dimension of a cell
 	var abs_cell_dim_y = (cfg.CELL_PADDING.x + this.dimension.height ); //absolute x-dimension of a cell
-	//always go from left to right on x-axis, makes the algo much easier to implement
-	if(startCoord.x > endCoord.x) {
-		var tmp = startCoord; startCoord = endCoord; endCoord = tmp;
-	}	
+		
 	var startCoord_n = this.normalizeCoordinates(startCoord);
 	var endCoord_n = this.normalizeCoordinates(endCoord);
-	
+	//always go from left to right on x-axis, makes the algo much easier to implement
+	if(startCoord_n.y > endCoord_n.y) {
+		var tmp = startCoord_n; startCoord_n = endCoord_n; endCoord_n = tmp;
+	}
 	var x1 = startCoord_n.x;
 	var x2 = endCoord_n.x;
 	var y1 = startCoord_n.y;
@@ -231,43 +278,47 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.allInOne2 = function(s
 	var dy = y2 - y1; 
 	var sy = (dy < 0) ? -abs_cell_dim_y : abs_cell_dim_y;
 	//for all crossed horizontal points
-	var m = dy / dx; 
-	var b = y1 - m * x1;
+	var m = dx / dy; 
+	var b = x1 - m * y1;
 	var coord_arr = {};
 	var cell_idx_arr = {};
 	do {
-		var x1_cell_idx = parseInt(x1 / abs_cell_dim_x);
-		var x1_rest = x1 % abs_cell_dim_x;
-		if(x1_rest <= this.dimension.width) { //if we are not in between two cells
-			x1 = abs_cell_dim_x + (x1_cell_idx - 1) * abs_cell_dim_x ; //x-startcoord (left border) of current cell
-			var cell_x_end = x1 + this.dimension.width; //x-end coordinate (right border)of current cell
-			y1 = Math.round(m*x1 + b);
-			y2 = Math.round(m*cell_x_end + b);
+		var y_cell_idx = parseInt(y1 / abs_cell_dim_y);
+		var y1_rest = y1 % abs_cell_dim_y;
+		if(y1_rest <= this.dimension.height) { //if we are not in between two cells
+			y1 = abs_cell_dim_y + (y_cell_idx - 1) * abs_cell_dim_y ; //x-startcoord (left border) of current cell
+			var cell_y_end = y1 + this.dimension.height; //y-end coordinate (right border)of current cell
+			x1 = Math.round(m*y1 + b);
+			x2 = Math.round(m*cell_y_end + b);
 			
-			var y1_idx = parseInt(y1 / abs_cell_dim_y);
-			var y1_rest = y1 % abs_cell_dim_y;
+			var x1_idx = parseInt(x1 / abs_cell_dim_x);
+			var x1_rest = x1 % abs_cell_dim_x;
 			
-			var y2_idx = parseInt(y2 / abs_cell_dim_y);
-			var y2_rest = y2 % abs_cell_dim_y;
+			var x2_idx = parseInt(x2 / abs_cell_dim_x);
+			var x2_rest = x2 % abs_cell_dim_x;
 			
-			if(x1 >= startCoord_n.x && x1 <= endCoord_n.x) {  //take this point only if within the borders of the drawn line
-				coord_arr[""+x1+"_"+y1] = 1;  //make uniq
-				if(y1_rest <= this.dimension.height) {//if we are in between cells border
-					cell_idx_arr[""+x1_cell_idx+"_"+y1_idx] = 1;
+			if(y1 >= startCoord_n.y && y1 <= endCoord_n.y) {  //take this point only if within the borders of the drawn line
+				coord_arr[""+x1+"_"+y1] = 1;  //make uniq: coordinates are mainly for debugging
+				if(x1_rest <= this.dimension.width //if we are in between cells border
+					&& y_cell_idx <= this.rows  // and if our index is in between possible cell index
+					&& x1_idx <= this.columns) {  
+						cell_idx_arr[""+x1_idx+"_"+y_cell_idx] = 1;
 				}
 			}
-			if(cell_x_end >= startCoord_n.x && cell_x_end <= endCoord_n.x) {
-				coord_arr[""+cell_x_end+"_"+y2] = 1;
-				if(y2_rest <= this.dimension.height) {
-					cell_idx_arr[""+x1_cell_idx+"_"+y2_idx] = 1; //make uniq
+			if(cell_y_end >= startCoord_n.y && cell_y_end <= endCoord_n.y) {
+				coord_arr[""+x2+"_"+cell_y_end] = 1;
+				if(x2_rest <= this.dimension.width
+					&& y_cell_idx <= this.rows  
+					&& x2_idx <= this.columns) {  
+					cell_idx_arr[""+x2_idx+"_"+y_cell_idx] = 1; //make uniq
 				}
 			}
 			
 		}
-		x1 += sx;
-	}while(x1 <= x2)
+		y1 += sy;
+	}while(y1 <= y2)
 	
-	//make real return values
+	//make real return values out of uniq arr
 	var retr_coords = new Array();
 	var idx_arr     = new Array();
 	
