@@ -83,25 +83,16 @@ de.dkfz.signaling.webcellhts.ClickRegistry.prototype.setAllCells = function(type
 	//setting all cells at once counts not as a user interaction
 	for(var row = 0; row < this.rows; row++) {
 		for(var column = 0; column < this.columns; column++) {
-			//if(type !=  this.currentWellStateArr[row][column] ) {
-			//change things around
-				this.undoWellStateArr[row][column] = this.currentWellStateArr[row][column];
-				this.currentWellStateArr[row][column] = type;
-			//}
+			this.addCurrentCellType(row, column, type);
 		}
 	}	
 }
-//undos all cells ...keeps track of current information
+//undos all cells to the EXACT former state
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoAllCells = function() {
 	//setting all cells at once counts not as a user interaction
 	for(var row = 0; row < this.rows; row++) {
 		for(var column = 0; column < this.columns; column++) {
-		//undo only if it is necessary
-			//if(this.undoWellStateArr[row][column] != this.currentWellStateArr[row][column]) { //undo means changing current and undo state
-				var tmpVal = this.undoWellStateArr[row][column];
-				this.undoWellStateArr[row][column] = this.currentWellStateArr[row][column];
-				this.currentWellStateArr[row][column] = tmpVal;
-			//}
+			this.rollBackCurrentCellType(row, column); //roll back to the exact former position
 		}
 	}	
 }
@@ -174,7 +165,7 @@ de.dkfz.signaling.webcellhts.ClickRegistry.prototype.clickRowHeadState = functio
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.clickColHeadState = function(colIdx) {
 //every user activity function must increase the userInteractionCounter
 	this.userInteractionCounter++;
-	if(this.userInteractionCounter != this.columnStates.clickIdArr[colIdx] + 1) {
+	if(this.userInteractionCounter != this.columnStates.clickIdArr[colIdx] + 1) { //if we are the very next click 
 		this.columnStates.stateArr[colIdx]  = this.cfg.HEAD_CELL_STATE.none;
 	}
 	if(this.columnStates.stateArr[colIdx] == this.cfg.HEAD_CELL_STATE.none ) {
@@ -205,7 +196,13 @@ de.dkfz.signaling.webcellhts.ClickRegistry.prototype.addCurrentCellType = functi
 		this.currentWellStateArr[row][column][++this.currentWellPointerArr[row][column]] = type; //this is equal to push array
 	}
 }
-//undoing the current celltype
+//undoing the current celltype to the EXACT former position
+de.dkfz.signaling.webcellhts.ClickRegistry.prototype.rollBackCurrentCellType = function(row, column) {
+		this.decCurrentCellTypePointer(row, column); 
+		currType = this.getCurrentCellType(row, column);
+}
+
+//undoing the current celltype ...try to undo position while the type is the same
 de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoCurrentCellType = function(row, column, type) {
 	do {	 //if we have found the same type try to go back in history until we have found anything different
 		this.decCurrentCellTypePointer(row, column); 
@@ -213,7 +210,7 @@ de.dkfz.signaling.webcellhts.ClickRegistry.prototype.undoCurrentCellType = funct
 		if(this.currentWellPointerArr[row][column] == 0) {
 			break;
 		}	
-	}while( currType == type);
+	}while( currType == type); //try next former position if it is different (only change when different)
 }
 
 //undoing current pointed cell in history

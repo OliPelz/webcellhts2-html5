@@ -123,7 +123,7 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.isCoordinateInPlate = 
 de.dkfz.signaling.webcellhts.PositionCalculator.prototype.singleCellFromLine = function(startCoord) {
 
 	if(! this.isCoordinateInPlate(startCoord) ) {
-		return {row:-1,cell:-1};
+		return {x:-1, y:-1};
 	}
 	var norm_coords = this.normalizeCoordinates(startCoord);
 	var index_coords = this.getGridIndexForCoordinate(norm_coords);
@@ -132,6 +132,10 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.singleCellFromLine = f
 de.dkfz.signaling.webcellhts.PositionCalculator.prototype.rect2Cells = function(startCoord, endCoord) {
 	if(startCoord.x == endCoord.x && startCoord.y == endCoord.y) {
 		return new Array();//dont draw anything
+	}
+	//always go from left to right on x-axis, makes the algo much easier to implement
+	if(startCoord.x > endCoord.x) {
+		var tmp = startCoord; startCoord = endCoord; endCoord = tmp;
 	}
 	var cfg = this.cfg;
 	var abs_cell_dim_x = (cfg.CELL_PADDING.x + this.dimension.width ); //absolute x-dimension of a cell
@@ -148,6 +152,11 @@ de.dkfz.signaling.webcellhts.PositionCalculator.prototype.rect2Cells = function(
 	var returnArr = new Array();
 	for(var i = x1_idx; i <= x2_idx; i++ ) {
 		 for(var j = y1_idx; j <= y2_idx; j++ ) {
+		 	var col = i - 1;
+		 	var row = j - 1;
+		 	if(col < 0 || row < 0) {
+		 		continue;
+		 	}
 		 	returnArr.push({column:i - 1, row:j - 1 });
 		 }
 	}

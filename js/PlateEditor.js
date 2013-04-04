@@ -129,11 +129,40 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._redraw = function() {
 		//this.drawWellCells();
    	
 }
+//this method processes single clicks into the header (row or column)
+//returns true if a click in the header occured, false otherwise
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.clickIntoHeader = function(cellIndex, cfg, plateConfig) {
+//we have clicked a single point...AND we are using the POINT drawing tool...do single click things
+  					//the rules for single click mode:
+  					// 1. click in the X: delete the current plate
+  					// 2. click on a header: mark/unmark the complete row/column
+  					// 3. click on a cell: mark/unmark that cell
+	//first check if we hit the X...delete the whole layout
+  	if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
+  		plateConfig.resetPlateLayoutForUndo();
+  		return true;
+  	}
+  	//if we have clicked the heading row
+  	else if(cellIndex.x_cell == 0 && cellIndex.y_cell > 0) {
+  		plateConfig.setRowToTypeAndDraw(cellIndex.y_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
+  		return true;
+  	}
+  	//if we have clicked the heading columns
+  	else if(cellIndex.x_cell > 0 && cellIndex.y_cell == 0) {
+  		plateConfig.setColumnToTypeAndDraw(cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
+  		return true;
+  	}
+  	return false;
+}
+
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.deletePlateLayout = function() {
+	this.plateConfig.resetPlateLayoutForUndo();
+}
+ 
 //this method manages all the event listeners for the complete object
 de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = function() {
-	
-	var plateConfig = this.plateConfig;
-	
+		var plateConfig = this.plateConfig;
+		var self = this;
 	//define some enclosures to be accessed from within the method
 		var startPoint;
 		var endPoint;
@@ -181,18 +210,7 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   					// 2. click on a header: mark/unmark the complete row/column
   					// 3. click on a cell: mark/unmark that cell
   								
-  				//first check if we hit the X...delete the whole layout
-  				if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
-  						plateConfig.resetPlateLayoutForUndo();
-  				}
-  				//if we have clicked the heading row
-  				else if(cellIndex.x_cell == 0 && cellIndex.y_cell > 0) {
-  						plateConfig.setRowToTypeAndDraw(cellIndex.y_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
-  				}
-  				//if we have clicked the heading columns
-  				else if(cellIndex.x_cell > 0 && cellIndex.y_cell == 0) {
-  						plateConfig.setColumnToTypeAndDraw(cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
-  				}
+  				if(self.clickIntoHeader(cellIndex, cfg, plateConfig)) {} //check and process clicks into the header
   				//if we have a 'normal' cell
   				else if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
   						plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);  //this is for testing

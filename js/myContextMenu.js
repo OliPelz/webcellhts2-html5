@@ -18,7 +18,11 @@ loadPlateEditorCtxMenu = function(plateEdit) {
             else if(key == "empty_well") {
             	cfg.CURRENT_SELECTED_CELL_TYPE = cfg.CELL_TYPE.empty;
             }
-        
+        //----------
+        	else if(key == "delete_plate") {
+        		plateEditor.deletePlateLayout();
+        		
+        	}    
         //---------
             else if(key == "single_select") {
             	plateEditor.currDrawTool = cfg.DRAW_TOOL.POINT;
@@ -40,11 +44,13 @@ loadPlateEditorCtxMenu = function(plateEdit) {
         	"control_well": {name: "Control Well"},
         	"empty_well": {name: "Empty Well"},
         	"sep1": "---------",
+        	"delete_plate": {name: "Delete Plate"},
+        	"sep2": "---------",
         	"single_select": {name: "Single Select"},
         	"line_tool": {name: "Line Select"},
         	"rectangle_tool":{name: "Rectangle Select"},
             "save": {name: "Save", icon: "save"},
-            "sep2": "---------",
+            "sep3": "---------",
             "refresh": {name: "Refresh", icon: "refresh"}
             //"copy": {name: "Copy", icon: "copy"},
             //"paste": {name: "Paste", icon: "paste"},
