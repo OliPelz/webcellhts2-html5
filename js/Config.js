@@ -22,6 +22,7 @@ de.dkfz.signaling.webcellhts.Config = {
 	CELL_DIMENSION : {width : 35, height : 35},
 	HEAD_CELL_STATE : {none:0, delete:1, undo:2},  //the states a heading cell can be in (3 at all) when we click on
 	CURRENT_SELECTED_CELL_TYPE : 0,  //the standard selection tool is positive well-> has got the id 0 (see CELL_TYPE.positive)
+	PLATE_TYPES : {P96:96, P384:384, P1536:1536},
 // position and size of the drawing wellplate
 	WELLPLATE_POS : {x:50, y:50},   //the upper left start of our plate IN the canvas
 	//WELLPLATE_WIDTH : 250,

@@ -25,7 +25,9 @@
 
 <script  type="text/javascript">
 $(document).ready(function(){
-	var plateEditor = new de.dkfz.signaling.webcellhts.PlateEditor("plateEditor", "animationOverlay");
+	var plateEditor = new de.dkfz.signaling.webcellhts.PlateEditor("plateEditor"
+							, de.dkfz.signaling.webcellhts.Config.PLATE_TYPES.P96
+							, "animationOverlay");
 	loadPlateEditorCtxMenu(plateEditor);
     	
 });
@@ -36,26 +38,12 @@ $(document).ready(function(){
 
 <div id="step-1">	
             	<h2 class="StepTitle">The Plate Editor</h2>
-            	
-            	<select id="plateFormatSelect">
-					<option value="96" default="true">96</option>  ⋮
-      				<option value="192">384</option>
-      				<option value="384">1536</option>
-    			</select>
-    			<select id="cellType">
-					<option value="positive" default="true">positive</option>  ⋮
-      				<option value="negative">negative</option>
-      				<option value="control">control</option>
-      				<option value="empty">empty</option>
-    			</select>
-    			Current Well <div id="currWell"></div>
-    				
-  										    		
+            							    		
 				<div id="container">
-					<canvas id="plateEditor" width="400" height="800">
+					<canvas id="plateEditor" width="1600" height="1600">
             			Hey you, yes YOU, upgrade your browser!!
             		</canvas> 
-            		<canvas id="animationOverlay" width="400" height="800"/>
+            		<canvas id="animationOverlay" width="800" height="800"/>
             			
             	</div>
             			

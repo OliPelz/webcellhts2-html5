@@ -6,6 +6,25 @@ loadPlateEditorCtxMenu = function(plateEdit) {
     $.contextMenu({
         selector: "#"+plateEditor.overlayId, 
         callback: function(key, options) {
+        	if(key == "plate_96") {
+            	plateEditor.clearPlateEditor();
+            	plateEditor = new de.dkfz.signaling.webcellhts.PlateEditor("plateEditor"
+            		, cfg.PLATE_TYPES.P96
+            		, "animationOverlay");
+            }
+            else if(key == "plate_384") {
+            	plateEditor.clearPlateEditor();
+            	plateEditor = new de.dkfz.signaling.webcellhts.PlateEditor("plateEditor"
+            		, cfg.PLATE_TYPES.P384
+            		, "animationOverlay");
+            }
+            else if(key == "plate_1536") {
+            	plateEditor.clearPlateEditor();
+            	plateEditor = new de.dkfz.signaling.webcellhts.PlateEditor("plateEditor"
+            		, cfg.PLATE_TYPES.P1536
+            		, "animationOverlay");
+            }
+        //----------
         	if(key == "positive_well") {
             	cfg.CURRENT_SELECTED_CELL_TYPE = cfg.CELL_TYPE.positive;
             }
@@ -21,7 +40,7 @@ loadPlateEditorCtxMenu = function(plateEdit) {
         //----------
         	else if(key == "delete_plate") {
         		plateEditor.deletePlateLayout();
-        		
+        		plateEditor._updateEventListeners(); //to get rid of visible lines or rectangles
         	}    
         //---------
             else if(key == "single_select") {
@@ -32,13 +51,19 @@ loadPlateEditorCtxMenu = function(plateEdit) {
             else if(key == "line_tool") {
             	plateEditor.currDrawTool = cfg.DRAW_TOOL.LINE;
             	plateEditor._updateEventListeners();
+            	//TODO: grey out header
             }
             else if(key == "rectangle_tool") {
             	plateEditor.currDrawTool = cfg.DRAW_TOOL.RECTANGLE;
             	plateEditor._updateEventListeners();
+            	//TODO: grey out header
             }
         },
         items: {
+        	"plate_96": {name: "New 96 Well Plate"},
+        	"plate_384": {name: "New 384 Well Plate"},
+        	"plate_1536": {name: "New 1536 Well Plate"},
+        	"sep0": "---------",
         	"positive_well": {name: "Positive Well"},
         	"negative_well": {name: "Negative Well"},
         	"control_well": {name: "Control Well"},
@@ -52,10 +77,6 @@ loadPlateEditorCtxMenu = function(plateEdit) {
             "save": {name: "Save", icon: "save"},
             "sep3": "---------",
             "refresh": {name: "Refresh", icon: "refresh"}
-            //"copy": {name: "Copy", icon: "copy"},
-            //"paste": {name: "Paste", icon: "paste"},
-            //"delete": {name: "Delete", icon: "delete"},
-            //"quit": {name: "Quit", icon: "quit"}
         }
     });
 };

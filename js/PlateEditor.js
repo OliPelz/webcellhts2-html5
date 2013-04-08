@@ -44,12 +44,11 @@ if(!de.dkfz.signaling.webcellhts)
 // ---------------------------------------------------------------------------------------------------------------------
 
 //Constructor
-de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, overlayContainerId) {
+de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, plateFormat, overlayContainerId) {
 	    //init - construct important stuff
     	//constants
     	this.containerId = containerId;
     	this.overlayId = overlayContainerId;
-    	this.plateFormatId = "plateFormatSelect";
     	this.currWellId = "currWell";
     	this.cfg = de.dkfz.signaling.webcellhts.Config;
     	//we use methods from this class
@@ -59,10 +58,6 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, overlayContaine
         if(! this.jsHelper.isElementInNode(this.containerId)) {
         	alert("canvas id undefined in DOM: "+containerId);
         	throw new Error("CanvasIdNotDefined");
-        }
-        if(! this.jsHelper.isElementInNode(this.plateFormatId)) {
-        	alert("plateformat dropdown chooser id undefined in DOM: "+plateFormatId);
-        	throw new Error("plateFormatChooserNotDefined");
         }
          if(! this.jsHelper.isElementInNode(this.overlayId)) {
         	alert("canvas overlay id undefined in DOM: "+this.overlayId);
@@ -78,11 +73,10 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, overlayContaine
 									, {x: 0 , y: 0}
 									, this.ctx);
 		this.plateConfig = new de.dkfz.signaling.webcellhts.PlateConfiguration(
-								$("#"+this.plateFormatId).val(), this.ctx
+								plateFormat, this.ctx
 							);
 		this.currDrawTool = this.cfg.DRAW_TOOL.POINT;  // set the standard drawing tool to draw single points
         this._updateEventListeners();
-        this._updateParameters();
     	//now draw everything
         this.plateConfig.drawAll();
 	
@@ -100,35 +94,20 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, overlayContaine
 		}
 		       
 }
-
-
-//this method should be run every time you update the parameters
-//e.g. plateformat etc.
-de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateParameters = function() {
-//every time we change a parameter we have to redraw the complete plate
-	
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.clearOverlayCanvas = function() {
+	this.overlay_ctx.clearRect(0, 0, this.overlay_canvas.width, this.overlay_canvas.height);
 }
-// this method draws the complete PlateEditor with everything
-de.dkfz.signaling.webcellhts.PlateEditor.prototype._redraw = function() {
-    	//drawing a plate consists of several steps
-    	// 
-    	// 0. clear the current drawing plate area (this is not clearing the complete canvas)
-    	// 1. draw the borders and the grid
-    	// 2. draw the headings
-    	// 3. draw the wells (cells)
-    	 
-    	// clear the plate
-    	this.plateConfig.clearPlateDraw();
-    	this.plateConfig.draw();
-    	
-    	
-    	
-    	//this.drawPlateShape();  //draws the grid and the headings
-		
-		//this.drawHeadings();
-		//this.drawWellCells();
-   	
+//this method erases the complete plate editor with everything attached
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.clearPlateEditor = function() {
+	//unbind all former registered mouse movement functions
+  	this.jsHelper.unbindAllMouseEvents(this.containerId);
+  	this.jsHelper.unbindAllMouseEvents(this.overlayId);
+  	
+  	//clear canvas
+  	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  	this.overlay_ctx.clearRect(0, 0, this.overlay_canvas.width, this.overlay_canvas.height);
 }
+
 //this method processes single clicks into the header (row or column)
 //returns true if a click in the header occured, false otherwise
 de.dkfz.signaling.webcellhts.PlateEditor.prototype.clickIntoHeader = function(cellIndex, cfg, plateConfig) {
