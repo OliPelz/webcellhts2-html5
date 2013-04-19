@@ -195,6 +195,42 @@ de.dkfz.signaling.b110.JsHelper.prototype.drawLine = function(startPoint
     		ctx.closePath();
     		ctx.restore();
 }
+de.dkfz.signaling.b110.JsHelper.prototype.drawCheckerBoardPattern = function(startPoint
+   												, stopPoint
+   												, lineThickness 
+   												, lineColor
+   												, parts
+   												, ctx
+   												) {
+	var dx = stopPoint.x - startPoint.x;
+	var dy = stopPoint.y - startPoint.y;
+	
+	var sx = dx / parts; // 6 x 6 lines checker board pattern
+	var sy = dy / parts; 
+
+	ctx.save()
+	ctx.strokeStyle = "white";
+    ctx.lineWidth = lineThickness;	
+	for(var i = 0; i < dx; i+=sx ) {  //horizontal lines
+		ctx.beginPath();
+    	ctx.moveTo(startPoint.x, startPoint.y+i);
+    	ctx.lineTo(stopPoint.x, startPoint.y+i);
+	    ctx.stroke();
+    	ctx.closePath();
+	}
+	for(var i = 0; i < dy; i+=sy ) {  //vertical lines
+		ctx.beginPath();
+    	ctx.moveTo(startPoint.x+i, startPoint.y);
+    	ctx.lineTo(startPoint.x+i, stopPoint.y);
+	    ctx.stroke();
+    	ctx.closePath();
+	}
+   			
+    			
+    			
+    		
+    ctx.restore();
+}
 de.dkfz.signaling.b110.JsHelper.prototype.drawRect = function(startPoint
    												, stopPoint
    												, lineThickness 
@@ -243,6 +279,18 @@ de.dkfz.signaling.b110.JsHelper.prototype.strokeRectangle = function(lineColor, 
 	//draw the border around the plate (this must not be the canvas border)
 	ctx.strokeRect(position_x, position_y, 
 					plateDimension.width, plateDimension.height);
+	ctx.restore();
+}
+de.dkfz.signaling.b110.JsHelper.prototype.drawLabel = function(x, y, text, ctx) {
+	ctx.save();
+	try {
+		ctx.fillStyle = "black";
+  		ctx.font = "bold 12px sans-serif";
+	} catch(err) {}
+	try {
+  		ctx.textBaseline = "top";
+  		ctx.fillText(text,x ,y);
+	} catch(err) {}
 	ctx.restore();
 }
 de.dkfz.signaling.b110.JsHelper.prototype.clearCanvas = function(canvas) {

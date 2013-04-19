@@ -65,14 +65,16 @@ de.dkfz.signaling.webcellhts.PlateConfiguration = function(plateFormat, ctx) {
 //draw all...this draws a complete empty and freshly initalized plate with the border, the headings and the cells
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAll = function() {
 	this.drawBorders();
-	this.drawHeadings();
+	this.drawHeadings(true);
 	this.drawAllCells();
 }
 //draw the row and column heading
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawHeadings = function() {
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawHeadings = function(enabled) {
 	var startPos = this.posCalculator.getActualUpperLeftHeadingStart();
+	this.allHeadings = new Array();
 	//draw an X at that position
-	de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText(startPos, "X", this.cellDimension, this.ctx);
+	var myCell = de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText(startPos, "X", enabled, this.cellDimension, this.ctx);
+	this.allHeadings.push(myCell);
 	//move forward one position
 	startPos.y += this.cellDimension.height + this.cfg.CELL_PADDING.y;
 	
@@ -81,7 +83,8 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawHeadings = functio
 		//var text = de.dkfz.signaling.webcellhts.Cell.prototype.numberToRowCode(i+1);
 		var text = i+1;
 		//draw a generic dummy cell in order to draw a "heading" cell, dont keep track of it 
-		de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText(startPos, text, this.cellDimension, this.ctx)
+		var myCell = de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText(startPos, text, enabled, this.cellDimension, this.ctx)
+		this.allHeadings.push(myCell);
 		//move to next position
 		startPos.y += this.cellDimension.height + this.cfg.CELL_PADDING.y;
 	}
@@ -92,18 +95,25 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawHeadings = functio
 	for(var i = 0; i < this.columns; i++) {
 		var text = de.dkfz.signaling.webcellhts.Cell.prototype.numberToRowCode(i+1);
 		//draw a generic dummy cell in order to draw a "heading" cell, dont keep track of it 
-		de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText(startPos, text, this.cellDimension, this.ctx)
+		de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText(startPos, text, enabled, this.cellDimension, this.ctx)
 		//move to next position
 		startPos.x += this.cellDimension.width + this.cfg.CELL_PADDING.x;
 	}
 }
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.disableAllHeadings = function() {
+	this.drawHeadings(false);
+}
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.enableAllHeadings = function() {
+	this.drawHeadings(true);
+}
+
 //this sets the type for a complete row, e.g. when clicking on the heading rows...it also has a undo functionality
 //if clicked again on the same button (but works only if clicked immediately again)
-
+//returns true if it should be changed/redrawn, false otherwise
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setRowToTypeAndDraw = function( row, type ) {
 	var i = row;
 	if( i < 0 ) {
-		return;
+		return false;
 	}	
 	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
 		console.log("before row click: ");
@@ -121,25 +131,19 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setRowToTypeAndDraw = 
 		this.clickRegistry.undoRowCells(row, type);
 		changes = true;
 	}
-	
-	if(changes) { //draw the model for real only if something is different
-		for(var column = 0; column < this.columns; column++) {
-			this.html5Wells[row][column].currentType = this.clickRegistry.getCurrentCellType(row, column);
-			this.html5Wells[row][column].drawAll();
-		}
-	}
 	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
 		console.log("after row click: ");
 		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
 											, this.clickRegistry.currentWellPointerArr );
 	}
-	
+	return changes;
 	
 }
+//returns true if we need to redraw, false otherwise
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setColumnToTypeAndDraw = function( column, type ) {
 	var i = column;
 	if( i < 0 ) {
-		return;
+		return false;
 	}	
 	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
 		console.log("before column click: ");
@@ -157,19 +161,12 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setColumnToTypeAndDraw
 		this.clickRegistry.undoColumnCells(column, type);
 		changes = true;
 	}
-	
-	if(changes) { //draw the model for real only if something is different
-		for(var row = 0; row < this.rows; row++) {
-			this.html5Wells[row][column].currentType = this.clickRegistry.getCurrentCellType(row, column);
-			this.html5Wells[row][column].drawAll();
-		}
-	}
 	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
 		console.log("agter column click: ");
 		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
 											, this.clickRegistry.currentWellPointerArr );
 	}
-	
+	return changes;
 	
 	
 }
@@ -185,26 +182,17 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.resetPlateLayoutForUnd
 	else if(newXCellState == this.cfg.HEAD_CELL_STATE.undo) {
 		this.clickRegistry.undoAllCells();
 	}
-	
-	//drawall cells (this is our View)
-	for(var i = 0; i < this.rows; i++) {
-		for(var j = 0; j < this.columns; j++) {
-			this.html5Wells[i][j].currentType = this.clickRegistry.getCurrentCellType(i, j);
-			this.html5Wells[i][j].drawAll();
-			
-		}
-	}
-
 }
 //this is the master drawing function...with storing undo info etc.
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellsToTypeAndDraw = function(arr, type ) {
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellsToType = function(arr, type ) {
 	for(var i = 0; i < arr.length; i++) {
-		this.setCellToTypeAndDraw(arr[i].row , arr[i].column , type);
+		this.setCellToType(arr[i].row , arr[i].column , type);
 	}
 }
 
 //this is the master drawing function...with storing undo info etc.
-de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellToTypeAndDraw = function( row, col, type ) {
+//update : this actually does not draw at all :D
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.setCellToType = function( row, col, type ) {
 	if(this.cfg.DEBUG_CLICK) { //print the row of concern before click
 		console.log("before single click: ");
 		console_log_3D_arr_highest_element(this.clickRegistry.currentWellStateArr
@@ -268,7 +256,32 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAllCells = functio
 		}
 	}
 }
+//draw all 'current' cells 
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAllCurrentCells = function(){
+	//drawall cells (this is our View)
+	for(var i = 0; i < this.rows; i++) {
+		for(var j = 0; j < this.columns; j++) {
+			this.html5Wells[i][j].currentType = this.clickRegistry.getCurrentCellType(i, j);
+			this.html5Wells[i][j].drawAll();
+			
+		}
+	}
+}
+//draw the model (this is our view)
 
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAllCurrentRowCells = function(row){
+	for(var column = 0; column < this.columns; column++) {
+			this.html5Wells[row][column].currentType = this.clickRegistry.getCurrentCellType(row, column);
+			this.html5Wells[row][column].drawAll();
+	}
+}
+//draw the model (this is our view)
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawAllCurrentColumnCells = function(column){
+	for(var row = 0; row < this.rows; row++) {
+			this.html5Wells[row][column].currentType = this.clickRegistry.getCurrentCellType(row, column);
+			this.html5Wells[row][column].drawAll();
+	}
+}
 de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.drawBorders = function() {
 	/*var lineColor = this.cfg.WELLPLATE_LINECOLOR;
 	var lineStrength = this.cfg.WELLPLATE_LINESTRENGTH;
@@ -336,6 +349,10 @@ de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.addWellTypeToHtml5Row 
 	for(var i = 0; i < rowOfInterest.length; i++) {
 		 this.html5Wells[rowIdx][i].currentType = rowOfInterest[i];
 	}
-} 
+}
+//this is a wrapper method
+de.dkfz.signaling.webcellhts.PlateConfiguration.prototype.getCurrentCellType = function(row, col) {
+	return this.clickRegistry.getCurrentCellType(row, col); 
+}
 
 

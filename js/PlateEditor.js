@@ -51,6 +51,7 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, plateFormat, ov
     	this.overlayId = overlayContainerId;
     	this.currWellId = "currWell";
     	this.cfg = de.dkfz.signaling.webcellhts.Config;
+    	this.plateConfigSettings = this.cfg.PLATE_CONFIG_SETTINGS; //this is a datastructure who gives us all available config settings
     	//we use methods from this class
     	this.jsHelper = new de.dkfz.signaling.b110.JsHelper();
     	
@@ -72,13 +73,22 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, plateFormat, ov
 									,  {width: this.canvas.width, height: this.canvas.height }
 									, {x: 0 , y: 0}
 									, this.ctx);
-		this.plateConfig = new de.dkfz.signaling.webcellhts.PlateConfiguration(
+		//every plateConfigSetting gets an own plateconfig ob
+		this.plateConfigCollection = {};
+		for(var plateObjKy in this.cfg.PLATE_CONFIG_SETTINGS) {
+			var myObj = new de.dkfz.signaling.webcellhts.PlateConfiguration(
 								plateFormat, this.ctx
 							);
+			this.plateConfigCollection[plateObjKy] = myObj;
+		}
+		this.plateConfig = this.plateConfigCollection.Pl_All;  //define the "All" plate as starting plate
+		this.selectedPlateConfigSetting = this.plateConfigSettings.Pl_All; //we start out with the "ALL" plate
 		this.currDrawTool = this.cfg.DRAW_TOOL.POINT;  // set the standard drawing tool to draw single points
         this._updateEventListeners();
     	//now draw everything
         this.plateConfig.drawAll();
+        //draw the current plate settings e.g. PL_1_REP_2 as a textlabel
+        this.drawCurrentPlateSettingLabel();
 	
 		if( this.cfg.DEBUG_COORDS == true ) {
 			draw_grid(this.canvas);
@@ -94,6 +104,19 @@ de.dkfz.signaling.webcellhts.PlateEditor = function(containerId, plateFormat, ov
 		}
 		       
 }
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.switchCurrentPlateSetting = function(plateSetting) {
+	if(this.selectedPlateConfigSetting != plateSetting) {
+		this.selectedPlateConfigSetting = plateSetting;
+		this.plateConfig =  this.plateConfigCollection[this.selectedPlateConfigSetting.name];
+		this.drawCurrentPlateSettingLabel();
+		this.plateConfig.drawAllCurrentCells();
+	}
+}
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.drawCurrentPlateSettingLabel = function() {
+	var name = this.selectedPlateConfigSetting.name;	
+	var currPlate = "Current Plate: '"+name+"'";
+	this.jsHelper.drawLabel(0, 0, currPlate, this.ctx);
+}
 de.dkfz.signaling.webcellhts.PlateEditor.prototype.clearOverlayCanvas = function() {
 	this.overlay_ctx.clearRect(0, 0, this.overlay_canvas.width, this.overlay_canvas.height);
 }
@@ -107,6 +130,14 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype.clearPlateEditor = function()
   	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   	this.overlay_ctx.clearRect(0, 0, this.overlay_canvas.width, this.overlay_canvas.height);
 }
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.redraw = function() {
+  	//clear canvas
+  	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+  	this.overlay_ctx.clearRect(0, 0, this.overlay_canvas.width, this.overlay_canvas.height);
+  	//draw again
+  	this.plateConfig.drawAll();
+  	this.drawCurrentPlateSettingLabel();
+}
 
 //this method processes single clicks into the header (row or column)
 //returns true if a click in the header occured, false otherwise
@@ -117,18 +148,22 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype.clickIntoHeader = function(ce
   					// 2. click on a header: mark/unmark the complete row/column
   					// 3. click on a cell: mark/unmark that cell
 	//first check if we hit the X...delete the whole layout
+	
   	if(cellIndex.x_cell == 0 && cellIndex.y_cell == 0) {
-  		plateConfig.resetPlateLayoutForUndo();
+  		//plateConfig.resetPlateLayoutForUndo();
+  		this.resetPlatesLayoutForUndo();
   		return true;
   	}
   	//if we have clicked the heading row
   	else if(cellIndex.x_cell == 0 && cellIndex.y_cell > 0) {
-  		plateConfig.setRowToTypeAndDraw(cellIndex.y_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
+  		//plateConfig.setRowToTypeAndDraw(cellIndex.y_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
+  		this.setPlatesRowToTypeAndDraw(cellIndex.y_cell - 1);
   		return true;
   	}
   	//if we have clicked the heading columns
   	else if(cellIndex.x_cell > 0 && cellIndex.y_cell == 0) {
-  		plateConfig.setColumnToTypeAndDraw(cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
+  		//plateConfig.setColumnToTypeAndDraw(cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);
+  		this.setPlatesColumnToTypeAndDraw(cellIndex.x_cell - 1);
   		return true;
   	}
   	return false;
@@ -136,6 +171,15 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype.clickIntoHeader = function(ce
 
 de.dkfz.signaling.webcellhts.PlateEditor.prototype.deletePlateLayout = function() {
 	this.plateConfig.resetPlateLayoutForUndo();
+}
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.disableHeadings = function() {
+	this.plateConfig.disableAllHeadings();
+}
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.enableHeadings = function() {
+	this.plateConfig.enableAllHeadings();
+} 
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.getPlateConfigSettings = function() {
+	return this.plateConfigSettings;
 }
  
 //this method manages all the event listeners for the complete object
@@ -192,7 +236,8 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   				if(self.clickIntoHeader(cellIndex, cfg, plateConfig)) {} //check and process clicks into the header
   				//if we have a 'normal' cell
   				else if(cellIndex.x_cell > 0 && cellIndex.y_cell > 0) {
-  						plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);  //this is for testing
+  						//plateConfig.setCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1, cfg.CURRENT_SELECTED_CELL_TYPE);  //this is for testing
+  						self.setPlatesCellToTypeAndDraw(cellIndex.y_cell - 1, cellIndex.x_cell - 1);
   				}
   					
   				
@@ -294,9 +339,108 @@ de.dkfz.signaling.webcellhts.PlateEditor.prototype._updateEventListeners = funct
   	    	
   	    	
   	    }
-  	    
-	
-	
+}
+//plate config helper (wrapper) functions
 
+//this method resets all the plateconfigs depending on if we have selected the "all plate"
+//or single plates
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.resetPlatesLayoutForUndo = function() {
+	//if we are the all plate : go over all plateConfigs
+	if(this.selectedPlateConfigSetting.name == "Pl_All") {
+		//loop over all plate configs
+		for(var plateCfgName in this.plateConfigCollection) {
+			var plateCfg = this.plateConfigCollection[plateCfgName];
+			plateCfg.resetPlateLayoutForUndo();
+		}
+	}
+	else { //reset only the current single plate if we are not the all plate
+		this.plateConfig.resetPlateLayoutForUndo();
+	}
+	this.plateConfig.drawAllCurrentCells();  //redraw the current layout
+}
+//this method sets a complete row on all plateconfigs (if we are the "all plate") or single plate config else
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.setPlatesRowToTypeAndDraw = function(rowIdx) {
+	var changes = false;
+	if(this.selectedPlateConfigSetting.name == "Pl_All") {
+		//loop over all plate configs
+		for(var plateCfgName in this.plateConfigCollection) {
+			var plateCfg = this.plateConfigCollection[plateCfgName];
+			var changes = plateCfg.setRowToTypeAndDraw(rowIdx, this.cfg.CURRENT_SELECTED_CELL_TYPE);
+			//draw first plate
+			if(changes && plateCfgName == "Pl_All") {
+				this.plateConfig.drawAllCurrentRowCells(rowIdx);
+			}
+		}
+	}
+	else { //else set only the current plate
+		this.plateConfig.setRowToTypeAndDraw(rowIdx, this.cfg.CURRENT_SELECTED_CELL_TYPE);
+		this.plateConfig.drawAllCurrentRowCells(rowIdx);
+	}
+}
+//this method sets a complete column on all plateconfigs (if we are the "all plate") or single plate config else
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.setPlatesColumnToTypeAndDraw  = function(colIdx) {
+	var changes = false;
+	if(this.selectedPlateConfigSetting.name == "Pl_All") {
+		//loop over all plate configs
+		for(var plateCfgName in this.plateConfigCollection) {
+			var plateCfg = this.plateConfigCollection[plateCfgName];
+			var changes = plateCfg.setColumnToTypeAndDraw(colIdx, this.cfg.CURRENT_SELECTED_CELL_TYPE);
+			//draw first plate
+			if(changes && plateCfgName == "Pl_All") {
+				this.plateConfig.drawAllCurrentColumnCells(colIdx);
+			}
+		}
+	}
+	else { //else set only the current plate
+		this.plateConfig.setColumnToTypeAndDraw(colIdx, this.cfg.CURRENT_SELECTED_CELL_TYPE);
+		this.plateConfig.drawAllCurrentColumnCells(colIdx);
+	}
+}
+//this method sets a single cell on all plateconfigs (if we are the "all plate") or single plate config else
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.setPlatesCellToTypeAndDraw  = function(row, col) {
+	if(this.selectedPlateConfigSetting.name == "Pl_All") {
+		//loop over all plate configs
+		for(var plateCfgName in this.plateConfigCollection) {
+			var plateCfg = this.plateConfigCollection[plateCfgName];
+			plateCfg.setCellToType(row, col, this.cfg.CURRENT_SELECTED_CELL_TYPE);  //this is for tes
+		}
+	}
+	else { //else set only the current plate
+		this.plateConfig.setCellToType(row, col, this.cfg.CURRENT_SELECTED_CELL_TYPE);  //this is for tes
+		//update the Plate_All if all single plates have the same type at this position
+		this.updateAllPlateCell(row, col);
+		
+	}
+}
+//this method checks if all the cells at a certain position have the same type and if so update the "All Plate"
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.updateAllPlateCell  = function(row, col) {
+	if(this.checkFullPlateSetSameType(row, col)) {  //if all the cells of all plates at a certain position are from the same type
+		var plateCfg = this.plateConfigCollection["Pl_All"];
+		this.plateConfigCollection["Pl_All"].setCellToType(row, col, cfg.CURRENT_SELECTED_CELL_TYPE);
+	}
+	else {  //if not every type for a specific row, col on all plates is equal -> set "All_Plate" well to empty
+		var plateCfg = this.plateConfigCollection["Pl_All"];
+		this.plateConfigCollection["Pl_All"].setCellToType(row, col, this.cfg.CELL_TYPE.empty);
+	}
 }
 
+//this method checks if all the wells at a certain position row,col have the same type FOR ALL the plates
+de.dkfz.signaling.webcellhts.PlateEditor.prototype.checkFullPlateSetSameType  = function(row, col) {
+	var myType = null;
+	for(var plateCfgName in this.plateConfigCollection) {
+		if(plateCfgName == "Pl_All") {
+			continue;
+		}
+		var plateCfg = this.plateConfigCollection[plateCfgName];
+		if(myType == null) {
+			myType = plateCfg.getCurrentCellType(row, col);
+		}
+		else {
+			var oldType = plateCfg.getCurrentCellType(row, col);
+			if(myType != oldType) {
+				return false;
+			}
+		}
+	}
+	return true;
+}

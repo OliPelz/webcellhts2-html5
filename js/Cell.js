@@ -54,8 +54,8 @@ de.dkfz.signaling.webcellhts.Cell = function(rowIndex, columnIndex,
 	//the upper left position of it, this is an object of type: {x:..,y:..}; 
 	this.drawPosition = drawPosition; 
 	this.ctx = ctx;  
-	this.helper = new de.dkfz.signaling.b110.JsHelper();	
-	
+	this.helper = new de.dkfz.signaling.b110.JsHelper();
+	this.disabled = false;		
 }
 //draw the shape and the text
 de.dkfz.signaling.webcellhts.Cell.prototype.setCurrentType = function(type){
@@ -87,6 +87,15 @@ de.dkfz.signaling.webcellhts.Cell.prototype.drawCellShapeWithText = function(pos
 de.dkfz.signaling.webcellhts.Cell.prototype._drawShape = function() {	
 	this._drawShapeWithPosition(this.drawPosition);	
 }
+
+de.dkfz.signaling.webcellhts.Cell.prototype.disableCell = function() {
+	this.disabled = true;
+}
+de.dkfz.signaling.webcellhts.Cell.prototype.enableCell = function() {
+	this.disabled = false;
+}
+
+
 //draw a cell with the upper left position
 de.dkfz.signaling.webcellhts.Cell.prototype._drawShapeWithPosition = function(drawPosition) {	
 	var color = getColorForWellType(this.currentType);
@@ -101,8 +110,16 @@ de.dkfz.signaling.webcellhts.Cell.prototype._drawShapeWithPosition = function(dr
 	this.ctx.lineWidth = lineStrength;   
 	this.ctx.strokeStyle = lineColor;
 	this.ctx.restore();
-	//this.ctx.strokeRect(drawPosition.x, drawPosition.y, 
-	//				this.dimensions.width, this.dimensions.height);	
+	if(this.disabled) { //overlay with grey checkerboard pattern
+		var stopPoint = {x: drawPosition.x+this.dimensions.width ,y: drawPosition.y+this.dimensions.height};
+		this.helper.drawCheckerBoardPattern(drawPosition
+   												, stopPoint
+   												, 2
+   												, "grey"
+   												, 3
+   												, this.ctx
+   												); 
+	}
 		
 }
 de.dkfz.signaling.webcellhts.Cell.prototype._drawCenteredText	= function() {
@@ -135,12 +152,14 @@ de.dkfz.signaling.webcellhts.Cell.prototype.numberToRowCode = function(number) {
 	return String.fromCharCode((number+64));
 }
 //this method draws an anonymous cell without keeping track of a reference etc
-de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText = function(startPos, text, cellDimension, ctx) { 
+de.dkfz.signaling.webcellhts.Cell.prototype.drawAnonymousCellWithText = function(startPos, text, enabled, cellDimension, ctx) { 
 	var cell = new de.dkfz.signaling.webcellhts.Cell(null, null, 
 										cellDimension, null, 
 										 ctx);
 	cell.setCurrentType(de.dkfz.signaling.webcellhts.Config.CELL_TYPE.other);
+	cell.disabled = !enabled;
 	cell.drawCellShapeWithText(startPos, text);
+	return cell;
 }
 	 
 

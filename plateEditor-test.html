@@ -25,6 +25,9 @@
 
 <script  type="text/javascript">
 $(document).ready(function(){
+//this will come from somewhere else
+	var plateConfigSettings = {plates:2 , replicates:2};
+	setPlateConfigSettings(plateConfigSettings);
 	var plateEditor = new de.dkfz.signaling.webcellhts.PlateEditor("plateEditor"
 							, de.dkfz.signaling.webcellhts.Config.PLATE_TYPES.P96
 							, "animationOverlay");
@@ -40,10 +43,10 @@ $(document).ready(function(){
             	<h2 class="StepTitle">The Plate Editor</h2>
             							    		
 				<div id="container">
-					<canvas id="plateEditor" width="1600" height="1600">
+					<canvas id="plateEditor" width="3600" height="3600">
             			Hey you, yes YOU, upgrade your browser!!
             		</canvas> 
-            		<canvas id="animationOverlay" width="800" height="800"/>
+            		<canvas id="animationOverlay" width="3600" height="3600"/>
             			
             	</div>
             			
